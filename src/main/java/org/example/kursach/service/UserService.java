@@ -98,7 +98,7 @@ public class UserService {
         update_user.setEmail(user.getEmail());
     }
 
-    @Cacheable(key = "workers")
+    @Cacheable(key = "'workers'")
     public List<UserDTO> get_all_workers() {
        return userRepository.findAllByRole_Name("WORKER").stream().map(userDTO_map).toList();
     }
