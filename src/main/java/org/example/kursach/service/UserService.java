@@ -110,6 +110,9 @@ public class UserService {
     @CacheEvict(allEntries = true)
     @Transactional
     public void add_user(Reguest_User_DTO user) {
+        if(userRepository.existsByEmail(user.getEmail())){
+            throw new IllegalStateException();
+        }
         User add_user = new User();
         add_user.setName(user.getName());
         add_user.setEmail(user.getEmail());
