@@ -1,0 +1,122 @@
+package org.example.kursach.service;
+
+
+import jakarta.persistence.EntityNotFoundException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
+import org.example.kursach.dto.All_User_infoDTO;
+import org.example.kursach.dto.OrderDTO;
+import org.example.kursach.dto.Reguest_User_DTO;
+import org.example.kursach.dto.UserDTO;
+import org.example.kursach.entity.Role;
+import org.example.kursach.entity.User;
+import org.example.kursach.mapping.All_user_infoDTO_map;
+import org.example.kursach.mapping.OrderDTO_Map;
+import org.example.kursach.mapping.UserDTO_Map;
+import org.example.kursach.repository.RoleRepository;
+import org.example.kursach.repository.UserRepository;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JWTService JWT;
+    private final UserDTO_Map userDTO_map;
+    private final All_user_infoDTO_map allUserInfoDTOMap;
+    private final OrderDTO_Map orderDTOMap;
+
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, JWTService JWT, PasswordEncoder passwordEncoder, UserDTO_Map userDTOMap, All_user_infoDTO_map allUserInfoDTOMap, OrderDTO_Map orderDTOMap){
+        this.userRepository=userRepository;
+        this.roleRepository=roleRepository;
+        this.JWT=JWT;
+        this.passwordEncoder = passwordEncoder;
+        this.userDTO_map = userDTOMap;
+        this.allUserInfoDTOMap = allUserInfoDTOMap;
+        this.orderDTOMap = orderDTOMap;
+    }
+
+    public List<All_User_infoDTO> findAll(){
+       return userRepository.findAll().stream().map(allUserInfoDTOMap).toList();
+    }
+
+    public Map<String,String> login(User user){
+        User user_bd= userRepository.
+                findByEmail(user.getEmail());
+        if (user_bd == null || !passwordEncoder.matches(user.getPassword(),user_bd.getPassword())){
+            throw new BadCredentialsException("Неверные данные или пароль");
+        }
+        return get_tokens(user.getEmail(),user_bd.getRole().getName());
+    }
+
+    @Transactional
+    public Map<String,String> save(User user){
+        if(userRepository.findByEmail(user.getEmail()) != null){
+            throw new IllegalStateException();
+        }
+        user.setRole(roleRepository.findByName("CLIENT"));
+        String password=user.getPassword();
+        user.setPassword(passwordEncoder.encode(password));
+        userRepository.save(user);
+        return get_tokens(user.getEmail(),"CLIENT");
+    }
+
+    private Map<String,String> get_tokens(String email,String role){
+        Map<String,String> map=new HashMap<>();
+        map.put("Acesstoken",JWT.createAcesstoken(email,role));
+        map.put("Refreshtoken",JWT.createRefreshtoken(email));
+        return map;
+    }
+
+    @Transactional
+    public void delete_element(Long id){
+        User user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
+        user.getWorker_orders().forEach(o->o.getWorkers().remove(user));
+        userRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void update(Long id, UserDTO user) {
+        User update_user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
+        update_user.setName(user.getName());
+        update_user.setEmail(user.getEmail());
+    }
+
+    public List<UserDTO> get_all_workers() {
+       return userRepository.findAllByRole_Name("WORKER").stream().map(userDTO_map).toList();
+    }
+
+    public UserDTO get_info(Long id) {
+        return userDTO_map.apply(userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден")));
+    }
+
+
+    public void add_user(Reguest_User_DTO user) {
+        User add_user = new User();
+        add_user.setName(user.getName());
+        add_user.setEmail(user.getEmail());
+        Role role = roleRepository.findByName(user.getRole());
+        add_user.setRole(role);
+        add_user.setPassword(passwordEncoder.encode(user.getPassword()));
+        add_user.setWorker_orders(new HashSet<>());
+        userRepository.save(add_user);
+    }
+
+    public List<OrderDTO> find_worker_orders(HttpServletRequest request) {
+        String token = JWT.get_token(request);
+        String email = JWT.get_email(token);
+        User user = userRepository.findByEmail(email);
+        if(user == null){
+            throw new EntityNotFoundException();
+        }
+        return user.getWorker_orders().stream().map(orderDTOMap).toList();
+    }
+}
