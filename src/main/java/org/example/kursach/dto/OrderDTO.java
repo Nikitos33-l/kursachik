@@ -3,7 +3,6 @@ package org.example.kursach.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.example.kursach.entity.Service;
 import org.example.kursach.entity.Venicle;

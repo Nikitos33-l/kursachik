@@ -15,6 +15,9 @@ import org.example.kursach.mapping.OrderDTO_Map;
 import org.example.kursach.mapping.UserDTO_Map;
 import org.example.kursach.repository.RoleRepository;
 import org.example.kursach.repository.UserRepository;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+@CacheConfig(cacheNames = "users")
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -44,10 +48,12 @@ public class UserService {
         this.orderDTOMap = orderDTOMap;
     }
 
+    @Cacheable
     public List<All_User_infoDTO> findAll(){
        return userRepository.findAll().stream().map(allUserInfoDTOMap).toList();
     }
 
+    @Transactional
     public Map<String,String> login(User user){
         User user_bd= userRepository.
                 findByEmail(user.getEmail());
@@ -76,6 +82,7 @@ public class UserService {
         return map;
     }
 
+    @CacheEvict(allEntries = true)
     @Transactional
     public void delete_element(Long id){
         User user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
@@ -83,6 +90,7 @@ public class UserService {
         userRepository.deleteById(id);
     }
 
+    @CacheEvict(allEntries = true)
     @Transactional
     public void update(Long id, UserDTO user) {
         User update_user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
@@ -90,6 +98,7 @@ public class UserService {
         update_user.setEmail(user.getEmail());
     }
 
+    @Cacheable(key = "workers")
     public List<UserDTO> get_all_workers() {
        return userRepository.findAllByRole_Name("WORKER").stream().map(userDTO_map).toList();
     }
@@ -98,7 +107,8 @@ public class UserService {
         return userDTO_map.apply(userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден")));
     }
 
-
+    @CacheEvict(allEntries = true)
+    @Transactional
     public void add_user(Reguest_User_DTO user) {
         User add_user = new User();
         add_user.setName(user.getName());
@@ -109,6 +119,7 @@ public class UserService {
         add_user.setWorker_orders(new HashSet<>());
         userRepository.save(add_user);
     }
+
 
     public List<OrderDTO> find_worker_orders(HttpServletRequest request) {
         String token = JWT.get_token(request);
