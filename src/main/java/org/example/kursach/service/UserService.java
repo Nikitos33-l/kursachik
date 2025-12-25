@@ -94,6 +94,10 @@ public class UserService {
     @Transactional
     public void update(Long id, UserDTO user) {
         User update_user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
+        User user_by_email = userRepository.findByEmail(user.getEmail());
+        if(user_by_email != update_user && user_by_email != null){
+            throw new IllegalStateException();
+        }
         update_user.setName(user.getName());
         update_user.setEmail(user.getEmail());
     }
