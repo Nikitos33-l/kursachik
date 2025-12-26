@@ -37,7 +37,7 @@ public class OrderService {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.statusRepository=statusRepository;
-        clientOrderDTO_map = clientOrderDTOMap;
+        this.clientOrderDTO_map = clientOrderDTOMap;
         this.jwtService = jwtService;
         this.vehicleRepository = vehicleRepository;
         this.serviceRepository = serviceRepository;
