@@ -95,7 +95,7 @@ public class UserService {
     public void update(Long id, UserDTO user) {
         User update_user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
         User user_by_email = userRepository.findByEmail(user.getEmail());
-        if(user_by_email != update_user && user_by_email != null){
+        if(!update_user.equals(user_by_email) && user_by_email != null){
             throw new IllegalStateException();
         }
         update_user.setName(user.getName());
@@ -121,6 +121,9 @@ public class UserService {
         add_user.setName(user.getName());
         add_user.setEmail(user.getEmail());
         Role role = roleRepository.findByName(user.getRole());
+        if(role == null){
+            throw new  EntityNotFoundException();
+        }
         add_user.setRole(role);
         add_user.setPassword(passwordEncoder.encode(user.getPassword()));
         add_user.setWorker_orders(new HashSet<>());
