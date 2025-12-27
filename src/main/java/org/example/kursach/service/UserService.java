@@ -53,35 +53,6 @@ public class UserService {
        return userRepository.findAll().stream().map(allUserInfoDTOMap).toList();
     }
 
-    @Transactional
-    public Map<String,String> login(User user){
-        User user_bd= userRepository.
-                findByEmail(user.getEmail());
-        if (user_bd == null || !passwordEncoder.matches(user.getPassword(),user_bd.getPassword())){
-            throw new BadCredentialsException("Неверные данные или пароль");
-        }
-        return get_tokens(user.getEmail(),user_bd.getRole().getName());
-    }
-
-    @Transactional
-    public Map<String,String> save(User user){
-        if(userRepository.findByEmail(user.getEmail()) != null){
-            throw new IllegalStateException();
-        }
-        user.setRole(roleRepository.findByName("CLIENT"));
-        String password=user.getPassword();
-        user.setPassword(passwordEncoder.encode(password));
-        userRepository.save(user);
-        return get_tokens(user.getEmail(),"CLIENT");
-    }
-
-    private Map<String,String> get_tokens(String email,String role){
-        Map<String,String> map=new HashMap<>();
-        map.put("Acesstoken",JWT.createAcesstoken(email,role));
-        map.put("Refreshtoken",JWT.createRefreshtoken(email));
-        return map;
-    }
-
     @CacheEvict(allEntries = true)
     @Transactional
     public void delete_element(Long id){

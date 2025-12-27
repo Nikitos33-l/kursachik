@@ -36,40 +36,9 @@ public class UserController {
         return userService.findAll();
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<Map<String,String>> create(@RequestBody User user, HttpServletResponse response){
-            Map<String, String> map = userService.save(user);
-            ResponseCookie cookie = ResponseCookie.from("Refreshtoken", map.get("Refreshtoken"))
-                    .httpOnly(true)
-                    .path("/api/token/refresh")
-                    .sameSite("None")
-                    .secure(false)
-                    .maxAge(Duration.ofDays(5))
-                    .build();
-            System.out.println("Это кука: " + cookie);
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-            return ResponseEntity.ok(map);
-    }
-
     @GetMapping("/get/all/workers")
     public List<UserDTO> get_workers(){
         return userService.get_all_workers();
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<Map<String,String>> login(@RequestBody User user,HttpServletResponse response) {
-            Map<String, String> map = userService.login(user);
-            ResponseCookie cookie = ResponseCookie.from("Refreshtoken", map.get("Refreshtoken"))
-                    .httpOnly(true)
-                    .secure(false)
-                    .path("/api/token/refresh")
-                    .sameSite("None")
-                    .maxAge(Duration.ofDays(5))
-                    .build();
-            System.out.println("Это кука: " + cookie);
-            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-            return ResponseEntity.ok().body(map);
-
     }
 
     @DeleteMapping("/delete/{id}")
