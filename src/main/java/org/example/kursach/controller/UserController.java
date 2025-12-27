@@ -83,7 +83,7 @@ public class UserController {
         return userService.get_info(id);
     }
 
-    @PutMapping("update/{id}")
+    @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void update_user(@PathVariable Long id,@RequestBody @Valid UserDTO user){
         userService.update(id,user);

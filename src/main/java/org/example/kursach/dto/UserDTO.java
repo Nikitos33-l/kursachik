@@ -1,6 +1,7 @@
 package org.example.kursach.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
 import lombok.Getter;
@@ -14,10 +15,10 @@ public class UserDTO {
    @Null
    private final Long id;
 
-   @NotNull
+   @NotBlank
    private final String name;
 
-   @NotNull
+   @NotBlank
    @Email
    private final String email;
 

@@ -1,5 +1,6 @@
 package org.example.kursach.dto;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import java.util.List;
 public class Update_orderDTO {
     @NotNull
     private final List<Long> workers_id;
-    @NotNull
+    @NotBlank
     private final String status_id;
 
 

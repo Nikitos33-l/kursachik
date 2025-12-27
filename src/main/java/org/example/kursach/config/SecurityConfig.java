@@ -23,7 +23,7 @@ public class SecurityConfig {
     private static final String USER_LOGIN_ENTRY_POINT = "/api/user/login";
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter) {
+    public SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
