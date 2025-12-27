@@ -1,8 +1,8 @@
 package org.example.kursach.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityNotFoundException;
+import org.example.kursach.dto.All_User_infoDTO;
 import org.example.kursach.dto.Reguest_User_DTO;
 import org.example.kursach.dto.UserDTO;
 import org.example.kursach.service.JWTService;
@@ -17,9 +17,12 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
@@ -121,6 +124,46 @@ public class UserControllerTest {
         ).andExpect(status().isBadRequest());
 
         verify(userService,times(0)).add_user(any(Reguest_User_DTO.class));
+    }
+
+    @Test
+    @DisplayName("Удачное получение всех пользователей")
+    @WithMockUser(username = "admin",roles = {"ADMIN"})
+    public void success_findAll_test() throws Exception {
+        List<All_User_infoDTO> users = List.of(
+                new All_User_infoDTO(1L,"Иван","ivan@gmail.com","CLIENT"),
+                new All_User_infoDTO(2L,"Гоша","gosha@gmail.com","WORKER"),
+                new All_User_infoDTO(3L,"Егор","eger@gmail.com","ADMIN")
+        );
+
+        when(userService.findAll()).thenReturn(users);
+
+        mockMvc.perform(
+                get("/api/user/getAll")
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].name").value("Иван"))
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].email").value("ivan@gmail.com"));
+
+        verify(userService,times(1)).findAll();
+    }
+
+    @Test
+    @DisplayName("Удачное выполнение получения информации о конкретном пользователе")
+    @WithMockUser(username = "admin",roles = {"ADMIN"})
+    public void success_get_user_info_test() throws Exception {
+        UserDTO return_user = new UserDTO(1L,"Иван","ivan@gmail.com");
+        when(userService.get_info(1L)).thenReturn(return_user);
+
+        mockMvc.perform(
+                get("/api/user//get/info/1")
+        )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Иван"))
+                .andExpect(jsonPath("$.email").value("ivan@gmail.com"));
+
+        verify(userService,times(1)).get_info(1L);
     }
 
 }
