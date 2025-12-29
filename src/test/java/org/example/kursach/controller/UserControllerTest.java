@@ -157,7 +157,7 @@ public class UserControllerTest {
         when(userService.get_info(1L)).thenReturn(return_user);
 
         mockMvc.perform(
-                get("/api/user//get/info/1")
+                get("/api/user/get/info/1")
         )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Иван"))
