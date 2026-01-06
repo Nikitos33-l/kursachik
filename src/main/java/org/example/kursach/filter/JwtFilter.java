@@ -28,7 +28,7 @@ public class JwtFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getServletPath();
-        if (path.equals("/api/user/login") || path.equals("/api/user/register") || path.equals("/api/token/refresh")) {
+        if (path.equals("/api/auth/login") || path.equals("/api/auth/register") || path.equals("/api/token/refresh")) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -44,19 +44,23 @@ public class JwtFilter extends OncePerRequestFilter {
                 Authentication authentication = new UsernamePasswordAuthenticationToken(jwtService.get_email(token),null,authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 filterChain.doFilter(request,response);
+                return;
             }
             catch (ExpiredJwtException e) {
                 System.out.println("Истек");
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\":\"token_expired\"}");
+                return;
             }
             catch (JwtException e) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json");
                 response.getWriter().write("{\"error\":\"token_invalid\"}");
+                return;
             }
 
         }
+        filterChain.doFilter(request, response);
     }
 }

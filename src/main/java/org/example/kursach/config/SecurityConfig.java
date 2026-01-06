@@ -19,8 +19,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private static final String REFRESH_TOKEN_ENTRY_POINT = "/api/token/refresh";
-    private static final String USER_REGISTER_ENTRY_POINT = "/api/user/register";
-    private static final String USER_LOGIN_ENTRY_POINT = "/api/user/login";
+    private static final String USER_REGISTER_ENTRY_POINT = "/api/auth/register";
+    private static final String USER_LOGIN_ENTRY_POINT = "/api/auth/login";
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http, JwtFilter jwtFilter) throws Exception {
@@ -29,9 +29,12 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(REFRESH_TOKEN_ENTRY_POINT).permitAll()
-                        .requestMatchers(USER_REGISTER_ENTRY_POINT).permitAll()
-                        .requestMatchers(USER_LOGIN_ENTRY_POINT).permitAll()
+
+                        .requestMatchers("/*.html").permitAll()
+
+                        .requestMatchers("/css/**", "/js/**", "/icons/**", "/static/**").permitAll()
+
+                        .requestMatchers(REFRESH_TOKEN_ENTRY_POINT, USER_REGISTER_ENTRY_POINT, USER_LOGIN_ENTRY_POINT).permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -42,7 +45,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://127.0.0.1:5500", "http://localhost:5500"));
+        configuration.setAllowedOrigins(List.of("http://127.0.0.1:63342", "http://localhost:63342"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
