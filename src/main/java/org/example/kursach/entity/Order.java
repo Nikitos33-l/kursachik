@@ -33,7 +33,7 @@ public class Order {
 
     @ManyToMany
     @JoinTable(
-            name="order_workers",
+            name = "order_workers",
             joinColumns = @JoinColumn(name="order_id"),
             inverseJoinColumns = @JoinColumn(name="worker_id")
     )
