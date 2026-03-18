@@ -27,12 +27,10 @@ public class YandexApiGeocoderService implements GeocoderService{
     @Override
     public CompletableFuture<AddressCoordinate> getCoordinate(String address) {
         String url = buildUrl(address);
-
-        try(HttpClient httpClient = HttpClient.newHttpClient()) {
-            HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url)).build();
-            CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
-            return response.thenApply(result -> parseJson(result.body()));
-        }
+        HttpClient httpClient = HttpClient.newHttpClient();
+        HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url)).build();
+        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
+        return response.thenApply(result -> parseJson(result.body()));
     }
 
     private String buildUrl(String clientAddress){

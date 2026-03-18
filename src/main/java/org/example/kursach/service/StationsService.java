@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class StationsService {
    final StationsRepository stationsRepository;
+   final GeocoderService geocoderService;
 
    public void addStations(){
 
