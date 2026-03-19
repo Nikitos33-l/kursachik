@@ -7,6 +7,7 @@ import org.example.kursach.dto.AddressCoordinate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -14,23 +15,32 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 
 @Service
 public class YandexApiGeocoderService implements GeocoderService{
-    @Value("${geocoder.api.key}")
-    private String apiKey;
+    private final String apiKey;
+    private final String apiUrl;
+    private final HttpClient httpClient;
+    private final ObjectMapper objectMapper;
 
-    @Value("${geocoder.api.url}")
-    private String apiUrl;
+    public YandexApiGeocoderService(@Value("${geocoder.api.key}") String apiKey, @Value("${geocoder.api.url}") String apiUrl, HttpClient httpClient, ObjectMapper objectMapper) {
+        this.apiKey = apiKey;
+        this.apiUrl = apiUrl;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
+    }
 
     @Override
-    public CompletableFuture<AddressCoordinate> getCoordinate(String address) {
+    public AddressCoordinate getCoordinate(String address) {
         String url = buildUrl(address);
-        HttpClient httpClient = HttpClient.newHttpClient();
         HttpRequest httpRequest = HttpRequest.newBuilder(URI.create(url)).build();
-        CompletableFuture<HttpResponse<String>> response = httpClient.sendAsync(httpRequest, HttpResponse.BodyHandlers.ofString());
-        return response.thenApply(result -> parseJson(result.body()));
+        HttpResponse<String> response;
+        try {
+            response = httpClient.send(httpRequest, HttpResponse.BodyHandlers.ofString());
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return parseJson(response.body());
     }
 
     private String buildUrl(String clientAddress){
@@ -40,7 +50,6 @@ public class YandexApiGeocoderService implements GeocoderService{
     }
 
     private AddressCoordinate parseJson(String json){
-        ObjectMapper objectMapper = new ObjectMapper();
         try {
             JsonNode root = objectMapper.readTree(json);
             String path = "/response/GeoObjectCollection/featureMember/0/GeoObject/Point/pos";
