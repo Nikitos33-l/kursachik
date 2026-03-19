@@ -29,5 +29,5 @@ public class Stations {
     private BigDecimal 	longitude;
 
     @Column(name = "adress_text")
-    private String adressText;
+    private String addressText;
 }
