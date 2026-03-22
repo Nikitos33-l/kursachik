@@ -1,8 +1,10 @@
 package org.example.kursach.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.example.kursach.dto.AddressCoordinate;
 import org.example.kursach.dto.RequestStationDto;
+import org.example.kursach.dto.ResponseStationDTO;
 import org.example.kursach.entity.Stations;
 import org.example.kursach.mapping.StationMapper;
 import org.example.kursach.repository.StationsRepository;
@@ -21,4 +23,9 @@ public class StationsService {
       stationsRepository.save(station);
    }
 
+    public ResponseStationDTO findById(Long id) {
+        return stationsRepository.findById(id)
+                .map(stationMapper::toDTO)
+                .orElseThrow(() -> new EntityNotFoundException("Станция с id " + id + " не найдена"));
+    }
 }
