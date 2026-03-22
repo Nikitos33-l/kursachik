@@ -13,7 +13,8 @@ public class GlobalExceptionHandler {
 
    @ExceptionHandler(exception = {
            BadCredentialsException.class,
-           EntityNotFoundException.class
+           EntityNotFoundException.class,
+           AddressNotFoundException.class
    })
     public ResponseEntity<String> handleBadRequest(Exception e){
        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

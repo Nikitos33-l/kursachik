@@ -3,6 +3,7 @@ package org.example.kursach.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.kursach.Exceptions.AddressNotFoundException;
 import org.example.kursach.dto.AddressCoordinate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -55,7 +56,7 @@ public class YandexApiGeocoderService implements GeocoderService{
             String path = "/response/GeoObjectCollection/featureMember/0/GeoObject/Point/pos";
             JsonNode posNode = root.at(path);
             if(posNode.isMissingNode()){
-                throw new RuntimeException("Координаты адресса не были найдены");
+                throw new AddressNotFoundException("Координаты адреса не были найдены");
             }
             String[] coordinate = posNode.asText().split(" ");
             int LONGITUDE_INDEX = 0;
