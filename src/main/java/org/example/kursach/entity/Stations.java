@@ -22,10 +22,10 @@ public class Stations {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "latitude")
+    @Column(name = "latitude",precision = 9, scale = 6)
     private BigDecimal latitude;
 
-    @Column(name = "longitude")
+    @Column(name = "longitude",precision = 9, scale = 6)
     private BigDecimal 	longitude;
 
     @Column(name = "adress_text")

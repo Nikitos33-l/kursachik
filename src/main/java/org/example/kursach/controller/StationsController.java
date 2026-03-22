@@ -6,6 +6,7 @@ import org.example.kursach.dto.RequestStationDto;
 import org.example.kursach.service.StationsService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -17,7 +18,7 @@ public class StationsController {
 
     @PreAuthorize("hasRole(SUPERADMIN)")
     @PostMapping("/add")
-    public void addStation(@Valid RequestStationDto stationDto){
+    public void addStation(@RequestBody @Valid RequestStationDto stationDto){
         stationsService.addStations(stationDto);
     }
 }
