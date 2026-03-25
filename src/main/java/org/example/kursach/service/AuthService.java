@@ -34,7 +34,8 @@ public class AuthService {
         if (user_bd == null || !passwordEncoder.matches(user.getPassword(),user_bd.getPassword())){
             throw new BadCredentialsException("Неверные данные или пароль");
         }
-        return get_tokens(user.getEmail(),user_bd.getRole().getName());
+        Long stationId = user.getWorkplace() != null ? user.getWorkplace().getId() : null;
+        return get_tokens(user.getEmail(),user_bd.getRole().getName(),stationId);
     }
 
     @Transactional
@@ -47,12 +48,12 @@ public class AuthService {
         String password=user.getPassword();
         user.setPassword(passwordEncoder.encode(password));
         userRepository.save(user);
-        return get_tokens(user.getEmail(),"CLIENT");
+        return get_tokens(user.getEmail(),"CLIENT",null);
     }
 
-    private Map<String,String> get_tokens(String email,String role){
+    private Map<String,String> get_tokens(String email,String role,Long stationId){
         Map<String,String> map=new HashMap<>();
-        map.put("Acesstoken",JWT.createAcesstoken(email,role));
+        map.put("Acesstoken",JWT.createAcesstoken(email,role,stationId));
         map.put("Refreshtoken",JWT.createRefreshtoken(email));
         return map;
     }

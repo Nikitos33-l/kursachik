@@ -25,4 +25,7 @@ public class Reguest_User_DTO {
     @NotBlank
     private final String role;
 
+    private final Long stationId;
+
+
 }

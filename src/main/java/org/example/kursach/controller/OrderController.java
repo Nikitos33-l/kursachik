@@ -3,14 +3,12 @@ package org.example.kursach.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import org.example.kursach.dto.Client_OrderDTO;
-import org.example.kursach.dto.OrderDTO;
-import org.example.kursach.dto.ReguestOrderDTO;
-import org.example.kursach.dto.Update_orderDTO;
+import org.example.kursach.dto.*;
 import org.example.kursach.entity.Order_statuse;
 import org.example.kursach.service.JWTService;
 import org.example.kursach.service.OrderService;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,11 +17,9 @@ import java.util.List;
 @RequestMapping("/api/order")
 public class OrderController {
     private final OrderService orderService;
-    private final JWTService jwtService;
 
-    public OrderController(OrderService orderService, JWTService jwtService) {
+    public OrderController(OrderService orderService) {
         this.orderService = orderService;
-        this.jwtService = jwtService;
     }
 
     @GetMapping("/get/{id}")
@@ -35,8 +31,8 @@ public class OrderController {
     public List<OrderDTO> findAll(){return orderService.findAll();}
 
     @GetMapping("/getClientOrder")
-    public List<Client_OrderDTO> find_user_order(HttpServletRequest request){
-        return orderService.find_user_order(jwtService.get_token(request));
+    public List<Client_OrderDTO> find_user_order(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return orderService.find_user_order(userPrincipal);
     }
 
     @PutMapping("/update_status/{id}")
@@ -52,8 +48,8 @@ public class OrderController {
     }
 
     @PostMapping("/create")
-    public void create_order(@RequestBody @Valid ReguestOrderDTO order, HttpServletRequest request){
-        orderService.create_element(order,jwtService.get_token(request));
+    public void create_order(@RequestBody @Valid ReguestOrderDTO order, @AuthenticationPrincipal UserPrincipal userPrincipal){
+        orderService.create_element(order,userPrincipal);
     }
 
 }

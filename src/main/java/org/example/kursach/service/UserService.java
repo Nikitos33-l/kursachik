@@ -4,28 +4,24 @@ package org.example.kursach.service;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.transaction.Transactional;
-import org.example.kursach.dto.All_User_infoDTO;
-import org.example.kursach.dto.OrderDTO;
-import org.example.kursach.dto.Reguest_User_DTO;
-import org.example.kursach.dto.UserDTO;
+import org.example.kursach.dto.*;
 import org.example.kursach.entity.Role;
+import org.example.kursach.entity.Stations;
 import org.example.kursach.entity.User;
 import org.example.kursach.mapping.All_user_infoDTO_map;
 import org.example.kursach.mapping.OrderDTO_Map;
 import org.example.kursach.mapping.UserDTO_Map;
 import org.example.kursach.repository.RoleRepository;
+import org.example.kursach.repository.StationsRepository;
 import org.example.kursach.repository.UserRepository;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 
 @CacheConfig(cacheNames = "users")
 @Service
@@ -37,8 +33,9 @@ public class UserService {
     private final UserDTO_Map userDTO_map;
     private final All_user_infoDTO_map allUserInfoDTOMap;
     private final OrderDTO_Map orderDTOMap;
+    private final StationsRepository stationsRepository;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, JWTService JWT, PasswordEncoder passwordEncoder, UserDTO_Map userDTOMap, All_user_infoDTO_map allUserInfoDTOMap, OrderDTO_Map orderDTOMap){
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, JWTService JWT, PasswordEncoder passwordEncoder, UserDTO_Map userDTOMap, All_user_infoDTO_map allUserInfoDTOMap, OrderDTO_Map orderDTOMap, StationsRepository stationsRepository){
         this.userRepository=userRepository;
         this.roleRepository=roleRepository;
         this.JWT=JWT;
@@ -46,6 +43,7 @@ public class UserService {
         this.userDTO_map = userDTOMap;
         this.allUserInfoDTOMap = allUserInfoDTOMap;
         this.orderDTOMap = orderDTOMap;
+        this.stationsRepository = stationsRepository;
     }
 
     @Cacheable
@@ -84,23 +82,34 @@ public class UserService {
 
     @CacheEvict(allEntries = true)
     @Transactional
-    public void add_user(Reguest_User_DTO user) {
-        if(userRepository.existsByEmail(user.getEmail())){
+    public void add_user(Reguest_User_DTO userDto, UserPrincipal currentUser) {
+        if(userRepository.existsByEmail(userDto.getEmail())){
             throw new IllegalStateException();
         }
         User add_user = new User();
-        add_user.setName(user.getName());
-        add_user.setEmail(user.getEmail());
-        Role role = roleRepository.findByName(user.getRole());
+        add_user.setName(userDto.getName());
+        add_user.setEmail(userDto.getEmail());
+        Role role = roleRepository.findByName(userDto.getRole());
         if(role == null){
             throw new  EntityNotFoundException();
         }
         add_user.setRole(role);
-        add_user.setPassword(passwordEncoder.encode(user.getPassword()));
+        add_user.setPassword(passwordEncoder.encode(userDto.getPassword()));
         add_user.setWorker_orders(new HashSet<>());
+        if(isSuperAdmin(currentUser)){
+            Stations station = stationsRepository.findById(userDto.getStationId()).orElseThrow(() -> new EntityNotFoundException());
+            add_user.setWorkplace(station);
+        }
+        else{
+            Stations station = stationsRepository.findById(currentUser.stationId()).orElseThrow(() -> new EntityNotFoundException());
+            add_user.setWorkplace(station);
+        }
         userRepository.save(add_user);
     }
 
+    private boolean isSuperAdmin(UserPrincipal user){
+        return user.authorities().stream().anyMatch(a -> a.getAuthority().equals("SUPERADMIN"));
+    }
 
     public List<OrderDTO> find_worker_orders(HttpServletRequest request) {
         String token = JWT.get_token(request);

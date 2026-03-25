@@ -22,9 +22,11 @@ import java.util.List;
 @Component
 public class JwtFilter extends OncePerRequestFilter {
     private final JWTService jwtService;
+
     public JwtFilter(JWTService jwtService) {
         this.jwtService = jwtService;
     }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         String path = request.getServletPath();
@@ -41,7 +43,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 System.out.println("Токен впорядке");
                 List<GrantedAuthority> authorities =
                         Collections.singletonList(new SimpleGrantedAuthority(jwtService.get_role(token)));
-                Authentication authentication = new UsernamePasswordAuthenticationToken(jwtService.get_email(token),null,authorities);
+                Authentication authentication = new UsernamePasswordAuthenticationToken(jwtService.getPrincipal(token),null,authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 filterChain.doFilter(request,response);
                 return;

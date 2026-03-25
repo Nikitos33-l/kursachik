@@ -3,10 +3,7 @@ package org.example.kursach.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
-import org.example.kursach.dto.Client_OrderDTO;
-import org.example.kursach.dto.OrderDTO;
-import org.example.kursach.dto.ReguestOrderDTO;
-import org.example.kursach.dto.Update_orderDTO;
+import org.example.kursach.dto.*;
 import org.example.kursach.entity.Order;
 import org.example.kursach.entity.Order_statuse;
 import org.example.kursach.entity.User;
@@ -32,8 +29,9 @@ public class OrderService {
     private final JWTService jwtService;
     private final VehicleRepository vehicleRepository;
     private final ServiceRepository serviceRepository;
+    private final StationsRepository stationsRepository;
 
-    public OrderService(UserRepository userRepository, OrderRepository orderRepository, StatusRepository statusRepository, Client_OrderDTO_map clientOrderDTOMap, JWTService jwtService, VehicleRepository vehicleRepository, ServiceRepository serviceRepository) {
+    public OrderService(UserRepository userRepository, OrderRepository orderRepository, StatusRepository statusRepository, Client_OrderDTO_map clientOrderDTOMap, JWTService jwtService, VehicleRepository vehicleRepository, ServiceRepository serviceRepository, StationsRepository stationsRepository) {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.statusRepository=statusRepository;
@@ -41,6 +39,7 @@ public class OrderService {
         this.jwtService = jwtService;
         this.vehicleRepository = vehicleRepository;
         this.serviceRepository = serviceRepository;
+        this.stationsRepository = stationsRepository;
         this.orderDTOMap=new OrderDTO_Map();
     }
 
@@ -48,8 +47,8 @@ public class OrderService {
         return orderRepository.findAll().stream().map(orderDTOMap).toList();
     }
 
-    public List<Client_OrderDTO> find_user_order(String token){
-        User user = userRepository.findByEmail(jwtService.get_email(token));
+    public List<Client_OrderDTO> find_user_order(UserPrincipal userPrincipal){
+        User user = userRepository.findByEmail(jwtService.get_email(userPrincipal.email()));
         return orderRepository.findAllByClient(user).stream().map(clientOrderDTO_map).toList();
     }
 
@@ -79,7 +78,7 @@ public class OrderService {
     }
 
     @Transactional
-    public void create_element(ReguestOrderDTO create_order, String token){
+    public void create_element(ReguestOrderDTO create_order, UserPrincipal userPrincipal){
             Order save_order = new Order();
             save_order.setWorkers(new ArrayList<>());
             Venicle venicle = vehicleRepository.save(create_order.getVehicle());
@@ -88,7 +87,8 @@ public class OrderService {
                 stream().
                 map(s->serviceRepository.findById(s).orElseThrow()).toList());
         save_order.setStatuse(statusRepository.findById("NEW").get());
-        save_order.setClient(userRepository.findByEmail(jwtService.get_email(token)));
+        save_order.setClient(userRepository.findByEmail(userPrincipal.email()));
+        save_order.setStation(stationsRepository.findById(create_order.getStationId()).orElseThrow());
         orderRepository.save(save_order);
     }
 

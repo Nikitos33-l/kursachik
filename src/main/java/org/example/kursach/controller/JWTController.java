@@ -23,15 +23,18 @@ public class JWTController {
     }
     @PostMapping("/refresh")
     public ResponseEntity<Map<String,String>> refresh_token(HttpServletRequest request){
-//        String refresh_token = Arrays.stream(request.getCookies()).
-//                filter(c->"Refreshtoken".equals(c.getName())).
-//                map(Cookie::getValue).
-//                findFirst().orElseThrow(() -> new RuntimeException("Refresh token not found"));
         String refresh_token = jwtService.get_token(request);
         System.out.println("кука есть: "+refresh_token);
         String acess_token = jwtService.refreshing_acess_token(refresh_token);
         Map<String,String> result_map = new HashMap<>();
         result_map.put("Acesstoken",acess_token);
         return ResponseEntity.ok(result_map);
+    }
+
+    private String getToken(HttpServletRequest request){
+        return Arrays.stream(request.getCookies()).
+         filter(c->"Refreshtoken".equals(c.getName())).
+               map(Cookie::getValue).
+              findFirst().orElseThrow(() -> new RuntimeException("Refresh token not found"));
     }
 }

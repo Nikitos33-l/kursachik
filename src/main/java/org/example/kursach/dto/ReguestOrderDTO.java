@@ -18,4 +18,7 @@ public class ReguestOrderDTO {
     @NotNull
     private List<Long> serviceId;
 
+    @NotNull
+    private Long stationId;
+
 }

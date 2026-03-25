@@ -108,7 +108,7 @@ public class UserControllerTest {
                         .content(objectMapper.writeValueAsString(userDto))
         ).andExpect(status().isOk());
 
-        verify(userService,times(1)).add_user(any(Reguest_User_DTO.class));
+        verify(userService,times(1)).add_user(any(Reguest_User_DTO.class), currentUser);
     }
 
     @Test
@@ -123,7 +123,7 @@ public class UserControllerTest {
                         .content(objectMapper.writeValueAsString(userDto))
         ).andExpect(status().isBadRequest());
 
-        verify(userService,times(0)).add_user(any(Reguest_User_DTO.class));
+        verify(userService,times(0)).add_user(any(Reguest_User_DTO.class), currentUser);
     }
 
     @Test

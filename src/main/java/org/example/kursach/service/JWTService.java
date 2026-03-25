@@ -6,20 +6,30 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
+import org.example.kursach.dto.UserPrincipal;
+import org.example.kursach.entity.User;
 import org.example.kursach.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
+
 @Component
 public class JWTService {
     private  final SecretKey Key;
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
     public JWTService(@Value("${jwt.secret}") String key, UserRepository userRepository) {
         Key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(key));
         this.userRepository = userRepository;
     }
+
     public String get_token(HttpServletRequest request){
         String head = request.getHeader("Autorization");
         String token = "";
@@ -28,13 +38,16 @@ public class JWTService {
         }
         return token;
     }
-    public String createAcesstoken(String email,String role){
+
+    public String createAcesstoken(String email,String role,Long stationId){
         return Jwts.builder().setSubject(email).
                 claim("role",role).
+                claim("stationId",stationId).
                 setIssuedAt(new Date()).
                 setExpiration(new Date(System.currentTimeMillis()+1000*60*15))
                 .signWith(Key).compact();
     }
+
     public String createRefreshtoken(String email){
         return Jwts.builder()
                 .setSubject(email)
@@ -42,22 +55,37 @@ public class JWTService {
                 .setExpiration(new Date(System.currentTimeMillis()+1000*60*60*24*23))
                 .signWith(Key).compact();
     }
+
     public String refreshing_acess_token(String refresh_token){
             validate_token(refresh_token);
             String email = get_email(refresh_token);
-            String role = userRepository.findByEmail(email).getRole().getName();
-            return createAcesstoken(email,role);
+            User user = userRepository.findByEmail(email);
+            String role = user.getRole().getName();
+            Long stationId = user.getWorkplace() != null ? user.getWorkplace().getId() : null;
+            return createAcesstoken(email,role,stationId);
 
     }
+
     public boolean validate_token(String token){
             Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token);
             return true;
     }
+
     public String get_email(String token){
         return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().getSubject();
     }
 
     public String get_role(String token) {
         return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().get("role", String.class);
+    }
+
+    public UserPrincipal getPrincipal(String token){
+       Claims claims = Jwts.parserBuilder().
+               setSigningKey(Key).build().parseClaimsJws(token).getBody();
+        String email = claims.getSubject();
+        String role = claims.get("role", String.class);
+        Long stationId = claims.get("stationId", Long.class);
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+        return new UserPrincipal(email,stationId,authorities);
     }
 }
