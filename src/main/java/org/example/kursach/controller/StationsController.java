@@ -8,6 +8,8 @@ import org.example.kursach.service.StationsService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("api/stations")
 @RequiredArgsConstructor
@@ -23,5 +25,10 @@ public class StationsController {
     @GetMapping("/findById/{id}")
     public ResponseStationDTO getStation(@PathVariable Long id){
        return stationsService.findById(id);
+    }
+
+    @GetMapping("/findAll")
+    public List<ResponseStationDTO> findAll(){
+        return stationsService.findAll();
     }
 }

@@ -22,6 +22,7 @@ public class StationMapper {
     }
 
     public ResponseStationDTO toDTO(Stations entity){
-        return new ResponseStationDTO(entity.getName(),entity.getAddressText());
+        return new ResponseStationDTO(entity.getId(),entity.getLongitude(),entity.getLatitude(),
+                entity.getName(),entity.getAddressText());
     }
 }

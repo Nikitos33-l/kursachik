@@ -10,6 +10,8 @@ import org.example.kursach.mapping.StationMapper;
 import org.example.kursach.repository.StationsRepository;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class StationsService {
@@ -27,5 +29,9 @@ public class StationsService {
         return stationsRepository.findById(id)
                 .map(stationMapper::toDTO)
                 .orElseThrow(() -> new EntityNotFoundException("Станция с id " + id + " не найдена"));
+    }
+
+    public List<ResponseStationDTO> findAll() {
+       return stationsRepository.findAll().stream().map(stationMapper::toDTO).toList();
     }
 }
