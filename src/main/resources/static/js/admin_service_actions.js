@@ -20,8 +20,8 @@ export async function load_serviceContent(document_page){
             <td>${element.name}</td>
             <td>${element.price} BYN</td>
             <td>
-            <button class="action-edit" data-id="${element.id}"><img src="../icons/change.png" alt="view" style="width:17px;height:17px"></button>
-             <button class="action-view" data-id="${element.id}"><img src="../icons/trash.png" alt="view" style="width:17px;height:17px"></button>
+            <button class="action-edit" data-id="${element.id}"><img src="icons/change.png" alt="view" style="width:17px;height:17px"></button>
+             <button class="action-view" data-id="${element.id}"><img src="icons/trash.png" alt="view" style="width:17px;height:17px"></button>
             </td>
             `
         tbody.appendChild(row);

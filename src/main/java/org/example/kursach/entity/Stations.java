@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Entity
 @Table(name = "stations")
@@ -28,6 +29,12 @@ public class Stations {
     @Column(name = "longitude",precision = 9, scale = 6)
     private BigDecimal 	longitude;
 
-    @Column(name = "adress_text")
+    @Column(name = "address_text")
     private String addressText;
+
+    @OneToMany(mappedBy = "station")
+    private List<Order> orders;
+
+    @OneToMany(mappedBy = "station")
+    private List<Service> services;
 }

@@ -15,10 +15,13 @@ public class Venicle {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="venicle_id")
     private Long id;
+
     @Column(name="make")
     private String make;
+
     @Column(name="model")
     private String model;
+
     @Column(name = "number",unique = true)
     private String number;
 }

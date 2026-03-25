@@ -26,6 +26,9 @@ public class Order {
     @JoinColumn(name="status")
     private Order_statuse statuse;
 
+    @ManyToOne
+    @JoinColumn(name = "station_id")
+    private Stations station;
 
     @ManyToOne()
     @JoinColumn(name="client_id")

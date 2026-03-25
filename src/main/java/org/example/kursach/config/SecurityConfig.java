@@ -34,7 +34,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/css/**", "/js/**", "/icons/**", "/static/**").permitAll()
 
-                        .requestMatchers(REFRESH_TOKEN_ENTRY_POINT, USER_REGISTER_ENTRY_POINT, USER_LOGIN_ENTRY_POINT).permitAll()
+                        .requestMatchers(REFRESH_TOKEN_ENTRY_POINT, USER_REGISTER_ENTRY_POINT, USER_LOGIN_ENTRY_POINT,"/api/stations/findAll").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -29,7 +29,7 @@ export async function load_orderContent(document_page){
             const workersCount = order.workers ? order.workers.length : 0;
             const workersHTML = `
               <span>${workersCount}</span>
-              <img src="../icons/worker.png" alt="worker" style="width:17px;height:17px;margin-left:4px;">
+              <img src="icons/worker.png" alt="worker" style="width:17px;height:17px;margin-left:4px;">
             `;
 
             row.innerHTML = `
@@ -40,8 +40,8 @@ export async function load_orderContent(document_page){
             <td>${workersHTML}</td>
             <td>${sum} BYN</td>
             <td>
-            <button class="action-view" data-id="${order.id}"><img src="../icons/view.png" alt="view" style="width:17px;height:17px"></button>
-            <button class="action-edit" data-id="${order.id}"><img src="../icons/change.png" alt="view" style="width:17px;height:17px"></button>
+            <button class="action-view" data-id="${order.id}"><img src="icons/view.png" alt="view" style="width:17px;height:17px"></button>
+            <button class="action-edit" data-id="${order.id}"><img src="icons/change.png" alt="view" style="width:17px;height:17px"></button>
             </td>
             `
             tbody.appendChild(row);

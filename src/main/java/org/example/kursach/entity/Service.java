@@ -15,8 +15,14 @@ public class Service {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="service_id")
     private Long id;
+
     @Column(name="service_name")
     private String name;
+
     @Column(name="price")
     private double price;
+
+    @ManyToOne
+    @JoinColumn(name = "station_id")
+    private Stations station;
 }

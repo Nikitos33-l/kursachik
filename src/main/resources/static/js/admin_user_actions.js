@@ -22,10 +22,10 @@ export async function load_userContent(document_page){
             <td>${getRoleBadge(element.role)}</td>
             <td>
                 <button class="action-edit" data-id="${element.id}">
-                    <img src="../icons/change.png" alt="edit" style="width:17px;height:17px">
+                    <img src="icons/change.png" alt="edit" style="width:17px;height:17px">
                 </button>
                 <button class="action-view" data-id="${element.id}">
-                    <img src="../icons/trash.png" alt="delete" style="width:17px;height:17px">
+                    <img src="icons/trash.png" alt="delete" style="width:17px;height:17px">
                 </button>
             </td>
         `;
