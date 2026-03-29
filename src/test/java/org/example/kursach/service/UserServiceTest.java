@@ -1,12 +1,12 @@
 package org.example.kursach.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.example.kursach.dto.All_User_infoDTO;
-import org.example.kursach.dto.Reguest_User_DTO;
+import org.example.kursach.dto.AllUserInfoDTO;
+import org.example.kursach.dto.ReguestUserDTO;
 import org.example.kursach.dto.UserDTO;
 import org.example.kursach.entity.Role;
 import org.example.kursach.entity.User;
-import org.example.kursach.mapping.All_user_infoDTO_map;
+import org.example.kursach.mapping.AllUserInfoDTOMap;
 import org.example.kursach.repository.RoleRepository;
 import org.example.kursach.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -32,7 +32,7 @@ public class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
-    private All_user_infoDTO_map allUserInfoDTOMap;
+    private AllUserInfoDTOMap allUserInfoDTOMap;
 
     @Mock
     private RoleRepository roleRepository;
@@ -52,14 +52,14 @@ public class UserServiceTest {
     public void findAlltest(){
         User first_user = create_user(1L,"1111","Иван","ivan@gmail.com");
         User second_user = create_user(2L,"243132","Никита","nikita@gmail.com");
-        All_User_infoDTO first_user_dto = new All_User_infoDTO(1L,"Иван","ivan@gmail.com","CLIENT");
-        All_User_infoDTO second_user_dto = new All_User_infoDTO(2L,"Никита","nikita@gmail.com","CLIENT");
+        AllUserInfoDTO first_user_dto = new AllUserInfoDTO(1L,"Иван","ivan@gmail.com","CLIENT");
+        AllUserInfoDTO second_user_dto = new AllUserInfoDTO(2L,"Никита","nikita@gmail.com","CLIENT");
         List<User> users = List.of(first_user,second_user);
-        List<All_User_infoDTO> dto_users = List.of(first_user_dto,second_user_dto);
+        List<AllUserInfoDTO> dto_users = List.of(first_user_dto,second_user_dto);
         when(userRepository.findAll()).thenReturn(users);
         when(allUserInfoDTOMap.apply(first_user)).thenReturn(first_user_dto);
         when(allUserInfoDTOMap.apply(second_user)).thenReturn(second_user_dto);
-        List<All_User_infoDTO> result = userService.findAll();
+        List<AllUserInfoDTO> result = userService.findAll();
 
         assertNotNull(result);
         assertEquals(dto_users,result);
@@ -81,7 +81,7 @@ public class UserServiceTest {
 
         when(userRepository.findById(id)).thenReturn(Optional.of(user));
 
-        userService.delete_element(id);
+        userService.deleteElement(id);
 
         verify(userRepository,times(1)).findById(id);
         verify(userRepository,times((1))).deleteById(id);
@@ -95,7 +95,7 @@ public class UserServiceTest {
         when(userRepository.findById(id)).thenReturn(Optional.empty());
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,()->{
-            userService.delete_element(id);
+            userService.deleteElement(id);
         });
 
         assertEquals("Объект не был найден",exception.getMessage());
@@ -149,11 +149,11 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с незанятым email и существующей ролью")
     public void successful_add_user_test(){
-        Reguest_User_DTO userDto = new Reguest_User_DTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(false);
         when(roleRepository.findByName(userDto.getRole())).thenReturn(new Role());
 
-        userService.add_user(userDto, currentUser);
+        userService.addUser(userDto, currentUser);
 
         verify(userRepository,times(1)).existsByEmail(userDto.getEmail());
         verify(roleRepository,times(1)).findByName(userDto.getRole());
@@ -164,11 +164,11 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с занятым email")
     public void throw_IllegalStateException_add_user_test(){
-        Reguest_User_DTO userDto = new Reguest_User_DTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(true);
 
         assertThrows(IllegalStateException.class,()->{
-            userService.add_user(userDto, currentUser);
+            userService.addUser(userDto, currentUser);
         });
 
         verify(userRepository,times(1)).existsByEmail(userDto.getEmail());
@@ -179,12 +179,12 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с несуществующей ролью")
     public void throw_EntityNotFoundException_add_user_test(){
-        Reguest_User_DTO userDto = new Reguest_User_DTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(false);
         when(roleRepository.findByName(userDto.getRole())).thenReturn(null);
 
         assertThrows(EntityNotFoundException.class,()->{
-            userService.add_user(userDto, currentUser);
+            userService.addUser(userDto, currentUser);
         });
 
         verify(userRepository,times(1)).existsByEmail(userDto.getEmail());

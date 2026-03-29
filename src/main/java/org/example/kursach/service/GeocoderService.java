@@ -6,5 +6,5 @@ import java.math.BigDecimal;
 import java.util.concurrent.CompletableFuture;
 
 public interface GeocoderService {
-    public AddressCoordinate getCoordinate(String address);
+    AddressCoordinate getCoordinate(String address);
 }

@@ -18,11 +18,9 @@ import java.util.List;
 @RequestMapping("/api/service")
 public class ServiceController {
     private final ServiceService service;
-    private final JWTService jwtService;
 
-    public ServiceController(ServiceService serviceService, JWTService jwtService) {
+    public ServiceController(ServiceService serviceService) {
         this.service = serviceService;
-        this.jwtService = jwtService;
     }
 
     @GetMapping("/getAll")

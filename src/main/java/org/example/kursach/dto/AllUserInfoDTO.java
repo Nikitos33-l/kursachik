@@ -7,7 +7,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class All_User_infoDTO {
+public class AllUserInfoDTO {
     private final Long id;
     private final String name;
     private final String email;

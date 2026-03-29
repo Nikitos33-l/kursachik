@@ -26,7 +26,7 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
     VehicleRepository vehicleRepository;
 
     @Autowired
-    private Order_statusRepository order_statusRepository;
+    private OrderStatusRepository order_statusRepository;
 
     @Autowired
     private ServiceRepository serviceRepository;
@@ -39,9 +39,9 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
         orderRepository.save(order);
     }
 
-    private Order create_order(Venicle venicle, Order_statuse statuse, List<Service> services, User client){
+    private Order create_order(Vehicle vehicle, OrderStatus statuse, List<Service> services, User client){
         Order order = new Order();
-        order.setVenicle(venicle);
+        order.setVehicle(vehicle);
         order.setWorkers(new ArrayList<>());
         order.setStatuse(statuse);
         order.setServices(services);
@@ -49,17 +49,17 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
         return order;
     }
 
-    private Venicle create_vehicle_and_save_inDB(){
-        Venicle venicle = new Venicle();
-        venicle.setModel("BMW");
-        venicle.setMake("I5");
-        venicle.setNumber("AB-34342");
-        vehicleRepository.save(venicle);
-        return venicle;
+    private Vehicle create_vehicle_and_save_inDB(){
+        Vehicle vehicle = new Vehicle();
+        vehicle.setModel("BMW");
+        vehicle.setMake("I5");
+        vehicle.setNumber("AB-34342");
+        vehicleRepository.save(vehicle);
+        return vehicle;
     }
 
-    private Order_statuse create_order_statuse_and_save_in_DB(){
-        Order_statuse orderStatuse = new Order_statuse();
+    private OrderStatus create_order_statuse_and_save_in_DB(){
+        OrderStatus orderStatuse = new OrderStatus();
         orderStatuse.setId("NEW");
         orderStatuse.setName("Новый");
         order_statusRepository.save(orderStatuse);

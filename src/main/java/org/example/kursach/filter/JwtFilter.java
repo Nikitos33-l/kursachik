@@ -39,10 +39,10 @@ public class JwtFilter extends OncePerRequestFilter {
             String token=head.substring(7);
             System.out.println(token);
             try {
-                jwtService.validate_token(token);
+                jwtService.validateToken(token);
                 System.out.println("Токен впорядке");
                 List<GrantedAuthority> authorities =
-                        Collections.singletonList(new SimpleGrantedAuthority(jwtService.get_role(token)));
+                        Collections.singletonList(new SimpleGrantedAuthority(jwtService.getRole(token)));
                 Authentication authentication = new UsernamePasswordAuthenticationToken(jwtService.getPrincipal(token),null,authorities);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
                 filterChain.doFilter(request,response);

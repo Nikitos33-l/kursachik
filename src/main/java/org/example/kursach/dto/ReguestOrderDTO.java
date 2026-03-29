@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.example.kursach.entity.Venicle;
+import org.example.kursach.entity.Vehicle;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class ReguestOrderDTO {
     @NotNull
-    private Venicle vehicle;
+    private Vehicle vehicle;
     @NotNull
     private List<Long> serviceId;
 

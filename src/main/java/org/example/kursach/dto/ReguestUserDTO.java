@@ -2,7 +2,6 @@ package org.example.kursach.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -10,7 +9,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @RequiredArgsConstructor
-public class Reguest_User_DTO {
+public class ReguestUserDTO {
 
     @NotBlank
     private final String name;

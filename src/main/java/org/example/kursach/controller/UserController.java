@@ -8,9 +8,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/user")
@@ -23,40 +21,40 @@ public class UserController {
 
     @GetMapping("/getAll")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<All_User_infoDTO> findAll(){
+    public List<AllUserInfoDTO> findAll(){
         return userService.findAll();
     }
 
     @GetMapping("/get/all/workers")
-    public List<UserDTO> get_workers(){
-        return userService.get_all_workers();
+    public List<UserDTO> getWorkers(){
+        return userService.getAllWorkers();
     }
 
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void delete(@PathVariable Long id){
-        userService.delete_element(id);
+        userService.deleteElement(id);
     }
 
     @GetMapping("/get/info/{id}")
-    public UserDTO get_info(@PathVariable Long id){
-        return userService.get_info(id);
+    public UserDTO getInfo(@PathVariable Long id){
+        return userService.getInfo(id);
     }
 
     @PutMapping("/update/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void update_user(@PathVariable Long id,@RequestBody @Valid UserDTO user){
+    public void updateUser(@PathVariable Long id, @RequestBody @Valid UserDTO user){
         userService.update(id,user);
     }
 
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN')")
-    public void addUser(@RequestBody @Valid Reguest_User_DTO user, @AuthenticationPrincipal UserPrincipal currentUser){
-        userService.add_user(user,currentUser);
+    public void addUser(@RequestBody @Valid ReguestUserDTO user, @AuthenticationPrincipal UserPrincipal currentUser){
+        userService.addUser(user,currentUser);
     }
 
     @GetMapping("/find/workerOrders")
-    public List<OrderDTO> get_worker_order(HttpServletRequest request){
-        return userService.find_worker_orders(request);
+    public List<OrderDTO> getWorkerOrder(HttpServletRequest request){
+        return userService.findWorkerOrders(request);
     }
 }

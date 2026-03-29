@@ -57,7 +57,7 @@ public class StationServiceTest {
     void findById_Found() {
         Long id = 1L;
         Stations station = new Stations();
-        ResponseStationDTO expectedDto = new ResponseStationDTO("СТО Тест", "Минск, Гикало 9");
+        ResponseStationDTO expectedDto = new ResponseStationDTO(1L,new BigDecimal("27.5"),new BigDecimal("53.9"),"СТО", "Минск, Гикало 9");
 
         when(stationsRepository.findById(id)).thenReturn(Optional.of(station));
         when(stationMapper.toDTO(station)).thenReturn(expectedDto);

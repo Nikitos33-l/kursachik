@@ -20,11 +20,11 @@ public class Order {
 
     @OneToOne
     @JoinColumn(name="venicle_id")
-    private Venicle venicle;
+    private Vehicle vehicle;
 
     @ManyToOne
     @JoinColumn(name="status")
-    private Order_statuse statuse;
+    private OrderStatus statuse;
 
     @ManyToOne
     @JoinColumn(name = "station_id")
@@ -55,28 +55,29 @@ public class Order {
 
         for(User old_worker : current){
             if(!new_workers.contains(old_worker)) {
-                delete_workers(old_worker);
+                deleteWorkers(old_worker);
             }
         }
         for(User new_worker : new_workers){
             if(!current.contains(new_worker)) {
-                add_workers(new_worker);
+                addWorkers(new_worker);
             }
         }
     }
 
-    public void clear_workers(){
+    public void clearWorkers(){
         for(User worker : new HashSet<>(workers)){
-            delete_workers(worker);
+            deleteWorkers(worker);
         }
     }
 
-    private void add_workers(User worker){
+    private void addWorkers(User worker){
         if(workers.add(worker)){
             worker.getWorker_orders().add(this);
         }
     }
-    private void delete_workers(User worker){
+
+    private void deleteWorkers(User worker){
         if(workers.remove(worker)){
             worker.getWorker_orders().remove(this);
         }

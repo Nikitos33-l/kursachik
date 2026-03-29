@@ -1,11 +1,9 @@
 package org.example.kursach.controller;
 
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.example.kursach.dto.*;
-import org.example.kursach.entity.Order_statuse;
-import org.example.kursach.service.JWTService;
+import org.example.kursach.entity.OrderStatus;
 import org.example.kursach.service.OrderService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -31,25 +29,25 @@ public class OrderController {
     public List<OrderDTO> findAll(){return orderService.findAll();}
 
     @GetMapping("/getClientOrder")
-    public List<Client_OrderDTO> find_user_order(@AuthenticationPrincipal UserPrincipal userPrincipal){
-        return orderService.find_user_order(userPrincipal);
+    public List<ClientOrderDTO> findUserOrder(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return orderService.findUserOrder(userPrincipal);
     }
 
-    @PutMapping("/update_status/{id}")
+    @PutMapping("/updateStatus/{id}")
     @PreAuthorize("hasRole('WORKER')")
-    public void update_Order_status(@PathVariable Long id, @RequestBody Order_statuse status){
-         orderService.update_status(id, status);
+    public void updateOrderStatus(@PathVariable Long id, @RequestBody OrderStatus status){
+         orderService.updateStatus(id, status);
     }
 
-    @PutMapping("/update_order/{id}")
+    @PutMapping("/updateOrder/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void update_order(@PathVariable Long id, @RequestBody @Valid Update_orderDTO new_order){
-        orderService.update_order(new_order,id);
+    public void updateOrder(@PathVariable Long id, @RequestBody @Valid Update_orderDTO new_order){
+        orderService.updateOrder(new_order,id);
     }
 
     @PostMapping("/create")
     public void create_order(@RequestBody @Valid ReguestOrderDTO order, @AuthenticationPrincipal UserPrincipal userPrincipal){
-        orderService.create_element(order,userPrincipal);
+        orderService.createElement(order,userPrincipal);
     }
 
 }

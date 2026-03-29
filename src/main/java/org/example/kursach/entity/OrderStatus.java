@@ -11,7 +11,7 @@ import lombok.Setter;
 @Entity
 @NoArgsConstructor
 @Table(name="order_statuses")
-public class Order_statuse {
+public class OrderStatus {
     @Id
     @Column(name="status_code")
     private String id;

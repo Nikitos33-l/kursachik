@@ -4,7 +4,6 @@ package org.example.kursach.service;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.security.SignatureException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.entity.User;
@@ -15,7 +14,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
@@ -30,7 +28,7 @@ public class JWTService {
         this.userRepository = userRepository;
     }
 
-    public String get_token(HttpServletRequest request){
+    public String getToken(HttpServletRequest request){
         String head = request.getHeader("Autorization");
         String token = "";
         if(head!=null&&head.startsWith("Bearer ")) {
@@ -56,9 +54,9 @@ public class JWTService {
                 .signWith(Key).compact();
     }
 
-    public String refreshing_acess_token(String refresh_token){
-            validate_token(refresh_token);
-            String email = get_email(refresh_token);
+    public String refreshingAcessToken(String refresh_token){
+            validateToken(refresh_token);
+            String email = getEmail(refresh_token);
             User user = userRepository.findByEmail(email);
             String role = user.getRole().getName();
             Long stationId = user.getWorkplace() != null ? user.getWorkplace().getId() : null;
@@ -66,16 +64,15 @@ public class JWTService {
 
     }
 
-    public boolean validate_token(String token){
+    public void validateToken(String token){
             Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token);
-            return true;
     }
 
-    public String get_email(String token){
+    public String getEmail(String token){
         return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().getSubject();
     }
 
-    public String get_role(String token) {
+    public String getRole(String token) {
         return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().get("role", String.class);
     }
 

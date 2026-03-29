@@ -21,9 +21,6 @@ import static org.mockito.Mockito.when;
 public class AuthServiceTest {
 
     @Mock
-    JWTService JWT;
-
-    @Mock
     UserRepository userRepository;
 
     @Mock

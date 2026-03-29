@@ -1,7 +1,7 @@
 package org.example.kursach.service;
 
 import org.example.kursach.entity.Order;
-import org.example.kursach.entity.Order_statuse;
+import org.example.kursach.entity.OrderStatus;
 import org.example.kursach.repository.OrderRepository;
 import org.example.kursach.repository.StatusRepository;
 import org.junit.jupiter.api.DisplayName;
@@ -32,13 +32,13 @@ public class OrderServiceTest {
     @DisplayName("Успешное обновление статуса заказа")
     public void successful_update_status_test(){
         Long id = 1L;
-        Order_statuse orderStatuse = create_orderStatuse("DONE","Выполнен");
+        OrderStatus orderStatuse = create_orderStatuse("DONE","Выполнен");
         Order order = create_order();
 
         when(orderRepository.findById(id)).thenReturn(Optional.of(order));
         when(statusRepository.findById("DONE")).thenReturn(Optional.of(orderStatuse));
 
-        orderService.update_status(id,orderStatuse);
+        orderService.updateStatus(id,orderStatuse);
 
         assertEquals(orderStatuse,order.getStatuse());
 
@@ -53,8 +53,8 @@ public class OrderServiceTest {
         return order;
     }
 
-    public Order_statuse create_orderStatuse(String id,String name){
-        Order_statuse orderStatuse = new Order_statuse();
+    public OrderStatus create_orderStatuse(String id, String name){
+        OrderStatus orderStatuse = new OrderStatus();
         orderStatuse.setId(id);
         orderStatuse.setName(name);
         return orderStatuse;

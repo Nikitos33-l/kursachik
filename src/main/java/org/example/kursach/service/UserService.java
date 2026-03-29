@@ -8,9 +8,9 @@ import org.example.kursach.dto.*;
 import org.example.kursach.entity.Role;
 import org.example.kursach.entity.Stations;
 import org.example.kursach.entity.User;
-import org.example.kursach.mapping.All_user_infoDTO_map;
-import org.example.kursach.mapping.OrderDTO_Map;
-import org.example.kursach.mapping.UserDTO_Map;
+import org.example.kursach.mapping.AllUserInfoDTOMap;
+import org.example.kursach.mapping.OrderDTOMap;
+import org.example.kursach.mapping.UserDTOMap;
 import org.example.kursach.repository.RoleRepository;
 import org.example.kursach.repository.StationsRepository;
 import org.example.kursach.repository.UserRepository;
@@ -30,12 +30,12 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JWTService JWT;
-    private final UserDTO_Map userDTO_map;
-    private final All_user_infoDTO_map allUserInfoDTOMap;
-    private final OrderDTO_Map orderDTOMap;
+    private final UserDTOMap userDTO_map;
+    private final AllUserInfoDTOMap allUserInfoDTOMap;
+    private final OrderDTOMap orderDTOMap;
     private final StationsRepository stationsRepository;
 
-    public UserService(UserRepository userRepository, RoleRepository roleRepository, JWTService JWT, PasswordEncoder passwordEncoder, UserDTO_Map userDTOMap, All_user_infoDTO_map allUserInfoDTOMap, OrderDTO_Map orderDTOMap, StationsRepository stationsRepository){
+    public UserService(UserRepository userRepository, RoleRepository roleRepository, JWTService JWT, PasswordEncoder passwordEncoder, UserDTOMap userDTOMap, AllUserInfoDTOMap allUserInfoDTOMap, OrderDTOMap orderDTOMap, StationsRepository stationsRepository){
         this.userRepository=userRepository;
         this.roleRepository=roleRepository;
         this.JWT=JWT;
@@ -47,13 +47,13 @@ public class UserService {
     }
 
     @Cacheable
-    public List<All_User_infoDTO> findAll(){
+    public List<AllUserInfoDTO> findAll(){
        return userRepository.findAll().stream().map(allUserInfoDTOMap).toList();
     }
 
     @CacheEvict(allEntries = true)
     @Transactional
-    public void delete_element(Long id){
+    public void deleteElement(Long id){
         User user = userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден"));
         user.getWorker_orders().forEach(o->o.getWorkers().remove(user));
         userRepository.deleteById(id);
@@ -72,17 +72,17 @@ public class UserService {
     }
 
     @Cacheable(key = "'workers'")
-    public List<UserDTO> get_all_workers() {
+    public List<UserDTO> getAllWorkers() {
        return userRepository.findAllByRole_Name("WORKER").stream().map(userDTO_map).toList();
     }
 
-    public UserDTO get_info(Long id) {
+    public UserDTO getInfo(Long id) {
         return userDTO_map.apply(userRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не был найден")));
     }
 
     @CacheEvict(allEntries = true)
     @Transactional
-    public void add_user(Reguest_User_DTO userDto, UserPrincipal currentUser) {
+    public void addUser(ReguestUserDTO userDto, UserPrincipal currentUser) {
         if(userRepository.existsByEmail(userDto.getEmail())){
             throw new IllegalStateException();
         }
@@ -111,9 +111,9 @@ public class UserService {
         return user.authorities().stream().anyMatch(a -> a.getAuthority().equals("SUPERADMIN"));
     }
 
-    public List<OrderDTO> find_worker_orders(HttpServletRequest request) {
-        String token = JWT.get_token(request);
-        String email = JWT.get_email(token);
+    public List<OrderDTO> findWorkerOrders(HttpServletRequest request) {
+        String token = JWT.getToken(request);
+        String email = JWT.getEmail(token);
         User user = userRepository.findByEmail(email);
         if(user == null){
             throw new EntityNotFoundException();

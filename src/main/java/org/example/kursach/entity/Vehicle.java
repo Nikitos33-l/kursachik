@@ -10,10 +10,10 @@ import lombok.Setter;
 @Entity
 @Table(name = "venicles")
 @NoArgsConstructor
-public class Venicle {
+public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="venicle_id")
+    @Column(name="vehicle_id")
     private Long id;
 
     @Column(name="make")

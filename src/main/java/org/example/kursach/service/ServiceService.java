@@ -8,7 +8,7 @@ import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.entity.Service;
 import org.example.kursach.entity.Stations;
 import org.example.kursach.entity.User;
-import org.example.kursach.mapping.Service_map;
+import org.example.kursach.mapping.ServiceMap;
 import org.example.kursach.repository.ServiceRepository;
 import org.example.kursach.repository.UserRepository;
 import org.springframework.cache.annotation.CacheConfig;
@@ -23,14 +23,12 @@ import java.util.List;
 @CacheConfig(cacheNames = {"services"})
 public class ServiceService {
     private final ServiceRepository serviceRepository;
-    private final Service_map service_map;
-    private final JWTService jwtService;
+    private final ServiceMap service_map;
     private final UserRepository userRepository;
 
-    public ServiceService(ServiceRepository serviceRepository, Service_map serviceMap, JWTService jwtService, UserRepository userRepository){
+    public ServiceService(ServiceRepository serviceRepository, ServiceMap serviceMap, UserRepository userRepository){
         this.serviceRepository=serviceRepository;
         service_map = serviceMap;
-        this.jwtService = jwtService;
         this.userRepository = userRepository;
     }
 
@@ -68,7 +66,7 @@ public class ServiceService {
         String adminEmail = userPrincipal.email();
         User adminOfStation = userRepository.findByEmail(adminEmail);
         Stations stations = adminOfStation.getWorkplace();
-        Service saveService = service_map.map_to_service(service);
+        Service saveService = service_map.mapToService(service);
         saveService.setStation(stations);
         serviceRepository.save(saveService);
     }

@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 import org.example.kursach.entity.Service;
-import org.example.kursach.entity.Venicle;
+import org.example.kursach.entity.Vehicle;
 
 import java.util.List;
 
@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 public class OrderDTO {
     private Long id;
-    private Venicle venicle;
+    private Vehicle vehicle;
     private String status;
     private UserDTO client;
     private List<UserDTO> workers;
