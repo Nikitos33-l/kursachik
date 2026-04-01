@@ -16,7 +16,7 @@ import java.util.List;
 public class StationsController {
     private final StationsService stationsService;
 
-    @PreAuthorize("hasRole(SUPERADMIN)")
+    @PreAuthorize("hasRole('SUPERADMIN')")
     @PostMapping("/add")
     public void addStation(@RequestBody @Valid RequestStationDto stationDto){
         stationsService.addStations(stationDto);

@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -98,6 +99,7 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
 
         mockMvc.perform(
                 get("/api/order/getAll")
+                        .with(user("admin").roles("ADMIN"))
         ).andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("Новый"))
                 .andExpect(jsonPath("$[0].client.email").value("ivan@gmail.com"));

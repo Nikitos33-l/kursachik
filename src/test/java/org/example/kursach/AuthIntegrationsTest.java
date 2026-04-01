@@ -47,7 +47,7 @@ public class AuthIntegrationsTest extends KursachApplicationTests{
 
     @Test
     @DisplayName("Удачная регистрация пользователя")
-    public void successful_registrate_user_test() throws Exception {
+    public void successfulRegistrateUserTest() throws Exception {
         User user_for_registrate = create_user("Иван","ivan@gmail.com","we123");
 
         mockMvc.perform(

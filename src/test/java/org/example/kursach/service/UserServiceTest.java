@@ -4,19 +4,25 @@ import jakarta.persistence.EntityNotFoundException;
 import org.example.kursach.dto.AllUserInfoDTO;
 import org.example.kursach.dto.ReguestUserDTO;
 import org.example.kursach.dto.UserDTO;
+import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.entity.Role;
+import org.example.kursach.entity.Stations;
 import org.example.kursach.entity.User;
 import org.example.kursach.mapping.AllUserInfoDTOMap;
 import org.example.kursach.repository.RoleRepository;
+import org.example.kursach.repository.StationsRepository;
 import org.example.kursach.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +33,9 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
+
+    @Mock
+    private StationsRepository stationsRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -40,11 +49,16 @@ public class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @Mock
-    private JWTService jwtService;
 
     @InjectMocks
     private UserService userService;
+
+    private UserPrincipal currentUser;
+
+    @BeforeEach
+    public void createCurrentUser(){
+        currentUser = new UserPrincipal("email@gmail.com",1L, Collections.singletonList(new SimpleGrantedAuthority("ADMIN")));
+    }
 
 
     @Test
@@ -149,9 +163,10 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с незанятым email и существующей ролью")
     public void successful_add_user_test(){
-        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","ADMIN",null);
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(false);
         when(roleRepository.findByName(userDto.getRole())).thenReturn(new Role());
+        when(stationsRepository.findById(1L)).thenReturn(Optional.of(new Stations()));
 
         userService.addUser(userDto, currentUser);
 
@@ -164,7 +179,7 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с занятым email")
     public void throw_IllegalStateException_add_user_test(){
-        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","ADMIN",null);
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(true);
 
         assertThrows(IllegalStateException.class,()->{
@@ -179,7 +194,7 @@ public class UserServiceTest {
     @Test
     @DisplayName("Добавление пользователя с несуществующей ролью")
     public void throw_EntityNotFoundException_add_user_test(){
-        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","CLIENT");
+        ReguestUserDTO userDto = new ReguestUserDTO("Иван","ivan@gmail.com","1111","ADMIN",null);
         when(userRepository.existsByEmail(userDto.getEmail())).thenReturn(false);
         when(roleRepository.findByName(userDto.getRole())).thenReturn(null);
 
