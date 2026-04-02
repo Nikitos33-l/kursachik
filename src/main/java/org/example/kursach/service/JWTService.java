@@ -72,10 +72,6 @@ public class JWTService {
         return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().getSubject();
     }
 
-    public String getRole(String token) {
-        return Jwts.parserBuilder().setSigningKey(Key).build().parseClaimsJws(token).getBody().get("role", String.class);
-    }
-
     public UserPrincipal getPrincipal(String token){
        Claims claims = Jwts.parserBuilder().
                setSigningKey(Key).build().parseClaimsJws(token).getBody();

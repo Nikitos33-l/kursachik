@@ -7,6 +7,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.service.JWTService;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -40,12 +41,20 @@ public class JwtFilter extends OncePerRequestFilter {
             System.out.println(token);
             try {
                 jwtService.validateToken(token);
-                System.out.println("Токен впорядке");
-                List<GrantedAuthority> authorities =
-                        Collections.singletonList(new SimpleGrantedAuthority(jwtService.getRole(token)));
-                Authentication authentication = new UsernamePasswordAuthenticationToken(jwtService.getPrincipal(token),null,authorities);
+                System.out.println("Токен в порядке");
+
+                UserPrincipal principal = jwtService.getPrincipal(token);
+
+                var authorities = principal.getAuthorities();
+
+                Authentication authentication = new UsernamePasswordAuthenticationToken(
+                        principal,
+                        null,
+                        authorities
+                );
+
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-                filterChain.doFilter(request,response);
+                filterChain.doFilter(request, response);
                 return;
             }
             catch (ExpiredJwtException e) {

@@ -172,9 +172,9 @@ function renderOrderCard(order) {
     const template = document.getElementById("order-card-content");
     const my_order_content = template.content.cloneNode(true);
     const vehicle_name = my_order_content.querySelector(".car-model");
-    vehicle_name.textContent = `${order.venicle.make}   ${order.venicle.model}`
+    vehicle_name.textContent = `${order.vehicle.make}   ${order.vehicle.model}`
     const vehicle_number = my_order_content.querySelector(".car-plate");
-    vehicle_number.textContent = order.venicle.number;
+    vehicle_number.textContent = order.vehicle.number;
     const status = my_order_content.querySelector(".car-status");
     status.textContent = order.status;
     status.classList.add(getStatusClass(order.status));

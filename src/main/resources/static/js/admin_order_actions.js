@@ -34,7 +34,7 @@ export async function load_orderContent(document_page){
 
             row.innerHTML = `
             <td>${order.client.name}<br>${order.client.email}</td>
-            <td>${order.venicle.make}  ${order.venicle.model}</td>
+            <td>${order.vehicle.make}  ${order.vehicle.model}</td>
             <td>${servicesText}</td>
             <td><span class="status-tag ${status_in_normal(order.status)}">${order.status}</span></td>
             <td>${workersHTML}</td>
@@ -64,7 +64,7 @@ async function view_details(id){
     const details = template.content.cloneNode(true);
     details.querySelector(".client-name").textContent = order.client.name;
     details.querySelector(".client-email").textContent = order.client.email;
-    details.querySelector(".venicle").textContent = `${order.venicle.make},${order.venicle.model}  Госномер:${order.venicle.number}`;
+    details.querySelector(".venicle").textContent = `${order.vehicle.make},${order.vehicle.model}  Госномер:${order.vehicle.number}`;
     let sum = 0;
     const service_list = details.querySelector(".service-list");
     service_list.innerHTML = "";
@@ -148,7 +148,7 @@ async function redact_order(id,modal) {
     const order = await order_details.json();
     modal.querySelector(".name").textContent = order.client.name;
     modal.querySelector(".email").textContent = order.client.email;
-    modal.querySelector(".venicle-modal-info").textContent = `${order.venicle.make}, ${order.venicle.model} Госномер:${order.venicle.number}`;
+    modal.querySelector(".venicle-modal-info").textContent = `${order.vehicle.make}, ${order.vehicle.model} Госномер:${order.vehicle.number}`;
     const service_list = modal.querySelector(".service-list");
     service_list.innerHTML = "";
     if(order.services.length > 0){

@@ -13,7 +13,7 @@ import lombok.Setter;
 public class Vehicle {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name="vehicle_id")
+    @Column(name="venicle_id")
     private Long id;
 
     @Column(name="make")

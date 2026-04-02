@@ -26,17 +26,15 @@ public class OrderService {
     private final StatusRepository statusRepository;
     private final OrderDTOMap orderDTOMap;
     private final ClientOrderDTOMap clientOrderDTO_map;
-    private final JWTService jwtService;
     private final VehicleRepository vehicleRepository;
     private final ServiceRepository serviceRepository;
     private final StationsRepository stationsRepository;
 
-    public OrderService(UserRepository userRepository, OrderRepository orderRepository, StatusRepository statusRepository, ClientOrderDTOMap clientOrderDTOMap, JWTService jwtService, VehicleRepository vehicleRepository, ServiceRepository serviceRepository, StationsRepository stationsRepository) {
+    public OrderService(UserRepository userRepository, OrderRepository orderRepository, StatusRepository statusRepository, ClientOrderDTOMap clientOrderDTOMap, VehicleRepository vehicleRepository, ServiceRepository serviceRepository, StationsRepository stationsRepository) {
         this.userRepository = userRepository;
         this.orderRepository = orderRepository;
         this.statusRepository=statusRepository;
         this.clientOrderDTO_map = clientOrderDTOMap;
-        this.jwtService = jwtService;
         this.vehicleRepository = vehicleRepository;
         this.serviceRepository = serviceRepository;
         this.stationsRepository = stationsRepository;
@@ -48,7 +46,7 @@ public class OrderService {
     }
 
     public List<ClientOrderDTO> findUserOrder(UserPrincipal userPrincipal){
-        User user = userRepository.findByEmail(jwtService.getEmail(userPrincipal.email()));
+        User user = userRepository.findByEmail(userPrincipal.email());
         return orderRepository.findAllByClient(user).stream().map(clientOrderDTO_map).toList();
     }
 
