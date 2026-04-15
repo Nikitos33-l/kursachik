@@ -1,6 +1,5 @@
 package org.example.kursach.service;
 
-
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import org.example.kursach.dto.ServiceRequestDto;
@@ -11,12 +10,7 @@ import org.example.kursach.entity.User;
 import org.example.kursach.mapping.ServiceMap;
 import org.example.kursach.repository.ServiceRepository;
 import org.example.kursach.repository.UserRepository;
-import org.springframework.cache.annotation.CacheConfig;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
-import org.springframework.cache.annotation.Caching;
-
-
+import org.springframework.cache.annotation.*;
 import java.util.List;
 
 @org.springframework.stereotype.Service
@@ -37,7 +31,10 @@ public class ServiceService {
         return serviceRepository.findByStationId(stationId);
     }
 
-    @CacheEvict(allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "services",allEntries = true),
+        @CacheEvict(cacheNames = "serviceDetails",key = "#id")
+    })
     @Transactional
     public void delete(Long id){
         if (!serviceRepository.existsById(id)){
@@ -46,7 +43,10 @@ public class ServiceService {
         serviceRepository.deleteById(id);
     }
 
-    @CacheEvict(allEntries = true)
+    @Caching(evict = {
+        @CacheEvict(cacheNames = "services",allEntries = true),
+        @CacheEvict(cacheNames = "serviceDetails",key = "#id")
+    })
     @Transactional
     public void update(Long id, ServiceRequestDto service_by_request){
         Service service_by_BD = serviceRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не найден"));
