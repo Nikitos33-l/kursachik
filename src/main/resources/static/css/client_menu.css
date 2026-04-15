@@ -430,3 +430,185 @@ body{
 .order-total-value {
   font-size: 16px;
 }
+
+.welcome-section {
+    text-align: center;
+    padding-top: 50px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.welcome-title {
+    color: #003399;
+    font-size: 36px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+.welcome-subtitle {
+    color: #667085;
+    font-size: 18px;
+    margin-bottom: 40px;
+}
+
+.menu-cards-container {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    margin-top: 40px;
+}
+
+.menu-card {
+    background: white;
+    border-radius: 24px;
+    padding: 40px 20px;
+    width: 320px;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.menu-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+}
+
+.menu-card-icon {
+    background: #003399;
+    width: 80px;
+    height: 80px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 20px;
+}
+
+.menu-card-icon img { width: 40px; }
+.menu-card-title { font-size: 20px; color: #003399; margin-bottom: 10px; }
+.menu-card-desc { color: #666; font-size: 14px; }
+
+.sto-layout {
+    display: flex;
+    gap: 40px;
+    max-width: 1300px;
+    width: 100%;
+    margin: 40px auto;
+    align-items: flex-start;
+}
+
+.sto-sidebar {
+    width: 380px;
+    flex-shrink: 0;
+}
+
+.sto-map-section {
+    flex-grow: 1;
+    background: white;
+    padding: 20px;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.yandex-map-container {
+    width: 100%;
+    height: 550px;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.sto-sidebar-title, .sto-map-title {
+    color: #003399;
+    font-size: 22px;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.sto-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.sto-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.sto-card:hover {
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+}
+
+.sto-card-icon {
+    background: #003399;
+    color: white;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sto-card-info h4 {
+    margin: 0 0 5px 0;
+    color: #003399;
+    font-size: 16px;
+}
+
+.sto-card-info p {
+    margin: 0;
+    color: #888;
+    font-size: 13px;
+}
+
+.sto-card.active {
+    background: #003399;
+    color: white;
+}
+
+.sto-card.active .sto-card-info h4,
+.sto-card.active .sto-card-info p {
+    color: white;
+}
+
+.sto-card.active .sto-card-icon {
+    background: white;
+    color: #003399;
+}
+
+.continue-btn {
+    background: #003399;
+    color: white;
+    border: none;
+    padding: 20px;
+    border-radius: 16px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: background 0.2s;
+    width: 100%;
+    box-shadow: 0 4px 15px rgba(0,51,153,0.2);
+}
+
+.continue-btn:hover {
+    background: #002266;
+}

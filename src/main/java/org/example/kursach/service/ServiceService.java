@@ -32,16 +32,13 @@ public class ServiceService {
         this.userRepository = userRepository;
     }
 
-    @Cacheable
-    public List<Service> findAll(){
-        return serviceRepository.findAll();
+    @Cacheable(key = "#stationId")
+    public List<Service> findAll(Long stationId){
+        return serviceRepository.findByStationId(stationId);
     }
 
+    @CacheEvict(allEntries = true)
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY"),
-            @CacheEvict(key = "#id")
-    })
     public void delete(Long id){
         if (!serviceRepository.existsById(id)){
              throw new EntityNotFoundException("Объект не найден");
@@ -49,19 +46,16 @@ public class ServiceService {
         serviceRepository.deleteById(id);
     }
 
+    @CacheEvict(allEntries = true)
     @Transactional
-    @Caching(evict = {
-            @CacheEvict(key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY"),
-            @CacheEvict(key = "#id")
-    })
     public void update(Long id, ServiceRequestDto service_by_request){
         Service service_by_BD = serviceRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не найден"));
         service_by_BD.setPrice(service_by_request.price());
         service_by_BD.setName(service_by_request.name());
     }
 
+    @CacheEvict(allEntries = true)
     @Transactional
-    @CacheEvict(key = "T(org.springframework.cache.interceptor.SimpleKey).EMPTY")
     public void add(ServiceRequestDto service, UserPrincipal userPrincipal){
         String adminEmail = userPrincipal.email();
         User adminOfStation = userRepository.findByEmail(adminEmail);
@@ -71,7 +65,7 @@ public class ServiceService {
         serviceRepository.save(saveService);
     }
 
-    @Cacheable
+    @Cacheable(cacheNames = "serviceDetails")
     public Service find(Long id) {
         return serviceRepository.findById(id).orElseThrow(()->new EntityNotFoundException("Объект не найден"));
     }

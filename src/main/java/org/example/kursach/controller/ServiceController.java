@@ -1,12 +1,9 @@
 package org.example.kursach.controller;
 
-
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.example.kursach.dto.ServiceRequestDto;
 import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.entity.Service;
-import org.example.kursach.service.JWTService;
 import org.example.kursach.service.ServiceService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -24,8 +21,8 @@ public class ServiceController {
     }
 
     @GetMapping("/getAll")
-    public List<Service> findAll(){
-        return service.findAll();
+    public List<Service> findAll(@RequestParam(required = false) Long stationId){
+        return service.findAll(stationId);
     }
 
     @GetMapping("/get/{id}")

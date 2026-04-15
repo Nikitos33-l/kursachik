@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="css/client_menu.css">
     <title>Меню клиента СТО</title>
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=bb79cde2-9ae8-4196-be84-7637e73bd262&lang=ru_RU" type="text/javascript"></script>
 </head>
 <body>
     <div class="head">
@@ -96,7 +97,59 @@
         </div>
       </div>
     </template>
+    <template id="main-menu-template">
+        <div class="welcome-section">
+            <h1 class="welcome-title">Что вы хотите сделать?</h1>
+            <p class="welcome-subtitle">Выберите действие для продолжения</p>
+
+            <div class="menu-cards-container">
+                <div class="menu-card" id="btn-choose-sto">
+                    <div class="menu-card-icon">
+                        <img src="icons/location.png" alt="Локация">
+                    </div>
+                    <h3 class="menu-card-title">Выбрать пункт СТО</h3>
+                    <p class="menu-card-desc">Найдите ближайший филиал на карте</p>
+                </div>
+
+                <div class="menu-card" id="btn-view-orders">
+                    <div class="menu-card-icon">
+                        <img src="icons/orders_list.png" alt="Заказы">
+                    </div>
+                    <h3 class="menu-card-title">Мои заказы</h3>
+                    <p class="menu-card-desc">Просмотр истории заказов</p>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <template id="sto-list-template">
+        <div class="sto-selection-container">
+            <button class="back-button">← Назад</button>
+            <h2 class="section-title">Выберите пункт СТО</h2>
+            <div class="sto-grid">
+            </div>
+        </div>
+    </template>
+
+    <template id="sto-selection-template">
+        <div class="sto-layout">
+            <div class="sto-sidebar">
+                <h2 class="sto-sidebar-title">Наши филиалы</h2>
+                <div class="sto-list" id="sto-list-container">
+                </div>
+            </div>
+
+            <div class="sto-map-section">
+                <h2 class="sto-map-title">Карта расположения</h2>
+                <div id="yandex-map" class="yandex-map-container"></div>
+
+                <button id="continue-sto-btn" class="continue-btn" style="display: none;">
+                    <span class="check-icon">✓</span> <span id="continue-btn-text">Продолжить</span>
+                </button>
+            </div>
+        </div>
+    </template>
     
-   <script type="module" src="../js\client_menu_script.js"></script>
+   <script type="module" src="js/client_menu_script.js"></script>
 </body>
 </html>
