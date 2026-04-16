@@ -33,6 +33,18 @@
     </div>
     <div class="content"></div>
     <template id = "order-content">
+        <div class="selected-branch-card">
+            <div class="branch-info-left">
+                <div class="branch-icon">
+                    <img src="icons/location.png" alt="📍"> </div>
+                <div class="branch-text">
+                    <span class="branch-label">Выбранный филиал:</span>
+                    <h3 class="branch-name" id="selected-sto-name">Загрузка...</h3>
+                    <p class="branch-address" id="selected-sto-address"></p>
+                </div>
+            </div>
+            <button class="change-branch-btn" id="btn-change-sto">Изменить</button>
+        </div>
       <div class="new-order-container">
         <h2 class="order-title">🚗 Новый заказ</h2>
         <p class="order-subtitle">Заполните информацию о вашем автомобиле</p>
@@ -72,30 +84,36 @@
         </p>
       </div>
     </template>
-    <template id = "order-card-content">
-      <div class="order-card">
-        <div class="car-header-card">
-          <div class="car-header-left">
-            <div class="car-icon-wrapper">
-              <img src="icons/car.png" alt="car" />
+    <template id="order-card-content">
+        <div class="order-card">
+            <div class="car-header-card">
+                <div class="car-header-left">
+                    <div class="car-icon-wrapper">
+                        <img src="icons/car.png" alt="car" />
+                    </div>
+                    <div class="car-details">
+                        <div class="car-model">marka model</div>
+                        <div class="car-plate">number</div>
+
+                        <div class="car-sto-info">
+                            <img src="icons/location_grey.png" alt="pin" />
+                            <span class="car-sto-name">Название СТО</span>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="car-status">Статус</div>
             </div>
-            <div class="car-details">
-              <div class="car-model">marka model</div>
-              <div class="car-plate">number</div>
+            <div class="car-services">
+                <div class="service-title">🔧 Услуги:</div>
+                <div class="order-service-list">
+                </div>
             </div>
-          </div>
-          <div class="car-status">Статус</div>
+            <div class="order-total-banner">
+                <span class="order-total-label">Итого:</span>
+                <span class="order-total-value">price</span>
+            </div>
         </div>
-        <div class="car-services">
-          <div class="service-title">🔧 Услуги:</div>
-          <div class="order-service-list">
-          </div>
-        </div>
-        <div class="order-total-banner">
-            <span class="order-total-label">Итого:</span>
-            <span class="order-total-value">price</span>
-        </div>
-      </div>
     </template>
     <template id="main-menu-template">
         <div class="welcome-section">

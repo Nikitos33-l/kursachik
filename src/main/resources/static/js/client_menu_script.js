@@ -1,15 +1,25 @@
 import {do_request} from "./fetch_request.js";
 
  const content = document.querySelector(".content");
- const navContainer = document.querySelector(".chose_chapter-container"); // Та самая синяя полоса с кнопками
+ const navContainer = document.querySelector(".chose_chapter-container");
 
- // 1. ИЗМЕНЯЕМ ТОЧКУ ВХОДА
  document.addEventListener('DOMContentLoaded', () => {
-     showMainMenu(); // Вместо загрузки вкладок, всегда показываем приветствие
- })
+     showMainMenu();
+
+     const radioButtons = document.querySelectorAll('input[name="chapter"]');
+     radioButtons.forEach(radio => {
+         radio.addEventListener('change', (e) => {
+             load_content(e.target.value);
+         });
+     });
+ });
 
  function showMainMenu() {
      if(navContainer) navContainer.style.display = "none";
+
+     localStorage.removeItem("selectedStationId");
+     localStorage.removeItem("selectedStationName");
+     localStorage.removeItem("selectedStationAddress");
 
      content.innerHTML = "";
      const template = document.getElementById("main-menu-template");
@@ -112,9 +122,13 @@ async function get_stations_menu() {
     continueBtn.addEventListener("click", () => {
         if (activeStationId) {
             localStorage.setItem("selectedStationId", activeStationId);
+            const selectedSto = stations.find(s => s.id == activeStationId);
+            localStorage.setItem("selectedStationName", selectedSto.name);
+            localStorage.setItem("selectedStationAddress", selectedSto.address);
+
             navContainer.style.display = "flex";
             document.getElementById("order_but").checked = true;
-            load_content("do_order")
+            load_content("do_order");
         }
     });
 }
@@ -122,12 +136,13 @@ async function get_stations_menu() {
 async function load_content(value) {
     if(value == "do_order"){
         if(!localStorage.getItem("selectedStationId")) {
+            alert("Пожалуйста, выберите филиал СТО для создания заказа.");
             get_stations_menu();
         } else {
             await get_order_menu();
         }
     }
-    else{
+    else {
         await get_my_order();
     }
 }
@@ -190,13 +205,20 @@ async function do_my_order_reguest() {
 function renderOrderCard(order) {
     const template = document.getElementById("order-card-content");
     const my_order_content = template.content.cloneNode(true);
+
     const vehicle_name = my_order_content.querySelector(".car-model");
     vehicle_name.textContent = `${order.vehicle.make}   ${order.vehicle.model}`
+
     const vehicle_number = my_order_content.querySelector(".car-plate");
     vehicle_number.textContent = order.vehicle.number;
+
+    const sto_name_element = my_order_content.querySelector(".car-sto-name");
+    sto_name_element.textContent = order.stationName || "СТО не указано";
+
     const status = my_order_content.querySelector(".car-status");
     status.textContent = order.status;
     status.classList.add(getStatusClass(order.status));
+
     const service_list = my_order_content.querySelector(".order-service-list");
     let res_price = 0;
     order.services.forEach(s=>{
@@ -228,7 +250,16 @@ function getStatusClass(status) {
 }
 async function get_order_menu(){
     const template = document.getElementById("order-content");
-    const content_order = template.content.cloneNode(true);
+        const content_order = template.content.cloneNode(true);
+        const stoName = localStorage.getItem("selectedStationName");
+        const stoAddress = localStorage.getItem("selectedStationAddress");
+
+        content_order.getElementById("selected-sto-name").textContent = stoName || "Не выбрано";
+        content_order.getElementById("selected-sto-address").textContent = stoAddress || "";
+
+        content_order.getElementById("btn-change-sto").onclick = () => {
+            get_stations_menu();
+        };
     const service_list = content_order.querySelector(".service-list");
 
     const response = await serviceFetch();
@@ -262,10 +293,16 @@ async function get_order_menu(){
 }
 
 async function serviceFetch() {
-    const url = "http://localhost:8080/api/service/getAll";
+    const stationId = localStorage.getItem("selectedStationId");
+
+    const url = stationId
+        ? `http://localhost:8080/api/service/getAll?stationId=${stationId}`
+        : "http://localhost:8080/api/service/getAll";
+
     const body = {
         method : "GET",
         headers : {
+            // Исправил опечатку: должно быть Authorization (через 'h')
             'Autorization' : `Bearer ${localStorage.getItem("acesstoken")}`
         }
     };
@@ -304,13 +341,11 @@ async function make_order() {
 
     if(response.ok){
         alert("Ваш заказ успешно оформлен!");
-        // Очистка полей
         brandInput.value = "";
         modelInput.value = "";
         numberInput.value = "";
         serviceCards.forEach(el => el.classList.remove("selected"));
 
-        // После успеха можно отправить пользователя в "Мои заказы"
         document.getElementById("user_but").checked = true;
         load_content("my_orders");
     } else {

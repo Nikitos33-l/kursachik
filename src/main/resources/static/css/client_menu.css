@@ -83,13 +83,14 @@ body{
 .new-order-container {
     width: 100%;
     max-width: 1000px;
-    margin: 30px auto;
+    margin: 0 auto;
     padding: 20px 30px;
     background-color: #ffffff;
     border-radius: 12px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     font-family: 'PT Sans', sans-serif;
-  }
+    box-sizing: border-box;
+}
   
   .form-row {
     display: flex;
@@ -611,4 +612,93 @@ body{
 
 .continue-btn:hover {
     background: #002266;
+}
+
+.selected-branch-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    /* ШИРИНА И ЦЕНТРОВКА */
+    width: 100%;
+    max-width: 1000px;      /* Должно быть ТОЧЬ-В-ТОЧЬ как у формы */
+    margin: 20px auto 12px auto; /* 20px сверху, 12px зазор снизу, auto центрирует */
+
+    background: #fff;
+    padding: 15px 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    box-sizing: border-box; /* Чтобы padding не раздувал блок */
+}
+
+.branch-info-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.branch-icon {
+    width: 50px;
+    height: 50px;
+    background: #003399; /* Синий цвет как на фото */
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.branch-icon img {
+    width: 24px;
+    filter: brightness(0) invert(1); /* Делает иконку белой */
+}
+
+.branch-label {
+    font-size: 12px;
+    color: #888;
+}
+
+.branch-name {
+    margin: 2px 0;
+    font-size: 18px;
+    color: #003399;
+}
+
+.branch-address {
+    margin: 0;
+    font-size: 14px;
+    color: #555;
+}
+
+.change-branch-btn {
+    background: #eef5ff;
+    color: #003399;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.change-branch-btn:hover {
+    background: #dceaff;
+}
+
+.car-sto-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;          /* Расстояние между иконкой и текстом */
+    margin-top: 6px;   /* Отступ вниз от госномера */
+}
+
+.car-sto-info img {
+    width: 14px;       /* Делаем иконку маленькой */
+    height: auto;
+    opacity: 0.7;      /* Слегка приглушаем цвет иконки */
+}
+
+.car-sto-name {
+    font-size: 14px;
+    color: #4a5568;    /* Приятный темно-серый/синеватый цвет текста */
+    font-weight: 500;
 }

@@ -16,5 +16,5 @@ public class ClientOrderDTO {
     private Vehicle vehicle;
     private List<Service> services;
     private String status;
-
+    private String stationName;
 }

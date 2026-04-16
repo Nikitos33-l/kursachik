@@ -10,9 +10,9 @@ import java.util.function.Function;
 @Component
 public class ClientOrderDTOMap implements Function<Order, ClientOrderDTO> {
 
-
     @Override
     public ClientOrderDTO apply(Order order) {
-        return new ClientOrderDTO(order.getVehicle(),order.getServices(),order.getStatuse().getName());
+        String stationName = order.getStation() != null ? order.getStation().getName() : "Не указано";
+        return new ClientOrderDTO(order.getVehicle(),order.getServices(),order.getStatuse().getName(),stationName);
     }
 }
