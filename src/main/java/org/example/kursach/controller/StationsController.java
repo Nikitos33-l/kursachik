@@ -31,4 +31,18 @@ public class StationsController {
     public List<ResponseStationDTO> findAll(){
         return stationsService.findAll();
     }
+
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    @DeleteMapping("/delete/{id}")
+    public void deleteStation(@PathVariable Long id){
+        stationsService.delete(id);
+    }
+
+    @PreAuthorize("hasRole('SUPERADMIN')")
+    @PutMapping("/update/{id}")
+    public void updateStation(@PathVariable Long id,@RequestBody @Valid RequestStationDto stationDto){
+        stationsService.update(id,stationDto);
+    }
+
+
 }
