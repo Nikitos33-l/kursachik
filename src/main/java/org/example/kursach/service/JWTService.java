@@ -78,7 +78,8 @@ public class JWTService {
         String email = claims.getSubject();
         String role = claims.get("role", String.class);
         Long stationId = claims.get("stationId", Long.class);
-        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(role));
+        String roleWithPrefix = role.startsWith("ROLE_") ? role : "ROLE_" + role;
+        List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority(roleWithPrefix));
         return new UserPrincipal(email,stationId,authorities);
     }
 }
