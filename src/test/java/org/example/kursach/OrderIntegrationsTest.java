@@ -119,7 +119,6 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                 mockPrincipal, null, mockPrincipal.getAuthorities());
 
-        // 3. Выполняем запрос
         mockMvc.perform(
                         get("/api/order/getAll")
                                 .with(authentication(auth))

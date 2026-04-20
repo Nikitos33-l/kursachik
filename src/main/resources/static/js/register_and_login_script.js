@@ -105,6 +105,9 @@ async function login_user(event) {
         else if(role == "CLIENT"){
             document.location.assign("client_menu.html");
         }
+        else if(role == "SUPERADMIN"){
+            document.location.assign("superadmin_menu.html");
+        }
         else{
             document.location.assign("worker_menu.html");
         }
