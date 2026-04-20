@@ -26,8 +26,9 @@ public class UserController {
     }
 
     @GetMapping("/get/all/workers")
-    public List<UserDTO> getWorkers(){
-        return userService.getAllWorkers();
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<UserDTO> getWorkers(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return userService.getAllWorkers(userPrincipal.stationId());
     }
 
     @DeleteMapping("/delete/{id}")

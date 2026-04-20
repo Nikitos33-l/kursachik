@@ -21,8 +21,8 @@ public class ServiceController {
     }
 
     @GetMapping("/getAll")
-    public List<Service> findAll(@RequestParam(required = false) Long stationId){
-        return service.findAll(stationId);
+    public List<Service> findAll(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return service.findAll(userPrincipal.stationId());
     }
 
     @GetMapping("/get/{id}")

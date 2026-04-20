@@ -72,8 +72,8 @@ public class UserService {
     }
 
     @Cacheable(key = "'workers'")
-    public List<UserDTO> getAllWorkers() {
-       return userRepository.findAllByRole_Name("WORKER").stream().map(userDTO_map).toList();
+    public List<UserDTO> getAllWorkers(Long stationId) {
+       return userRepository.findAllByRole_NameAndWorkplace_Id("WORKER",stationId).stream().map(userDTO_map).toList();
     }
 
     public UserDTO getInfo(Long id) {

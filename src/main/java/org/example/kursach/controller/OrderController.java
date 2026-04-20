@@ -26,7 +26,10 @@ public class OrderController {
     }
 
     @GetMapping("/getAll")
-    public List<OrderDTO> findAll(){return orderService.findAll();}
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<OrderDTO> findAll(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return orderService.findAll(userPrincipal.stationId());
+    }
 
     @GetMapping("/getClientOrder")
     public List<ClientOrderDTO> findUserOrder(@AuthenticationPrincipal UserPrincipal userPrincipal){

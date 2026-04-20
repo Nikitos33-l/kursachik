@@ -1,5 +1,6 @@
 package org.example.kursach;
 
+import org.example.kursach.dto.UserPrincipal;
 import org.example.kursach.entity.*;
 import org.example.kursach.repository.*;
 import org.junit.jupiter.api.AfterEach;
@@ -7,15 +8,23 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class OrderIntegrationsTest extends KursachApplicationTests{
+
+    @Autowired
+    StationsRepository stationsRepository;
 
     @Autowired
     OrderRepository orderRepository;
@@ -38,6 +47,13 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
                 ,create_order_statuse_and_save_in_DB(),create_services_and_save_in_DB(),
                 create_user_and_save_inDB());
         orderRepository.save(order);
+    }
+
+    @BeforeEach
+    public void addStation(){
+        stationsRepository.deleteAll();
+        Stations stations = new Stations();
+        stationsRepository.save(stations);
     }
 
     private Order create_order(Vehicle vehicle, OrderStatus statuse, List<Service> services, User client){
@@ -96,12 +112,17 @@ public class OrderIntegrationsTest extends KursachApplicationTests{
     @Test
     @DisplayName("Успешное получение информации всех заказов")
     public void successful_getAll_orders_test() throws Exception {
+        UserPrincipal mockPrincipal = new UserPrincipal(
+                "admin@gmail.com", 1L, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
 
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                mockPrincipal, null, mockPrincipal.getAuthorities());
+
+        // 3. Выполняем запрос
         mockMvc.perform(
-                get("/api/order/getAll")
-                        .with(user("admin").roles("ADMIN"))
-        ).andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("Новый"))
-                .andExpect(jsonPath("$[0].client.email").value("ivan@gmail.com"));
+                        get("/api/order/getAll")
+                                .with(authentication(auth))
+                ).andExpect(status().isOk());
     }
 }

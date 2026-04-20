@@ -5,10 +5,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.kursach.dto.*;
-import org.example.kursach.entity.Order;
-import org.example.kursach.entity.OrderStatus;
-import org.example.kursach.entity.User;
-import org.example.kursach.entity.Vehicle;
+import org.example.kursach.entity.*;
 import org.example.kursach.mapping.ClientOrderDTOMap;
 import org.example.kursach.mapping.OrderDTOMap;
 import org.example.kursach.repository.*;
@@ -31,8 +28,12 @@ public class OrderService {
     private final ServiceRepository serviceRepository;
     private final StationsRepository stationsRepository;
 
-    public List<OrderDTO> findAll(){
-        return orderRepository.findAll().stream().map(orderDTOMap).toList();
+    @Transactional
+    public List<OrderDTO> findAll(Long serviceId){
+        Stations station = stationsRepository.
+                findById(serviceId).orElseThrow(() -> new EntityNotFoundException("Станции с таким id не существует"));
+
+        return orderRepository.findAllByStation(station).stream().map(orderDTOMap).toList();
     }
 
     public List<ClientOrderDTO> findUserOrder(UserPrincipal userPrincipal){
