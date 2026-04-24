@@ -12,6 +12,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.util.Map;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -26,6 +30,9 @@ public class AuthServiceTest {
     @Mock
     PasswordEncoder passwordEncoder;
 
+    @Mock
+    JWTService jwtService;
+
     @InjectMocks
     AuthService authService;
 
@@ -38,9 +45,13 @@ public class AuthServiceTest {
         user.setRole(role);
         when(userRepository.findByEmail(user.getEmail())).thenReturn(user);
         when(passwordEncoder.matches(user.getPassword(),user.getPassword())).thenReturn(true);
+        when(jwtService.createAcesstoken("ivan@gmail.com","CLIENT",null)).thenReturn("AcessToken");
+        when(jwtService.createRefreshtoken("ivan@gmail.com")).thenReturn("RefreshToken");
 
-        authService.login(user);
+        Map<String,String> resultTokens = authService.login(user);
 
+        assertEquals("AcessToken",resultTokens.get("Acesstoken"));
+        assertEquals("RefreshToken",resultTokens.get("Refreshtoken"));
         verify(userRepository,times(1)).findByEmail(user.getEmail());
         verify(passwordEncoder,times(1)).matches(user.getPassword(),user.getPassword());
     }
