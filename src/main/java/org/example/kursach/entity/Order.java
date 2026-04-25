@@ -4,6 +4,9 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.kursach.dto.OrderStatusChangeEvent;
+import org.example.kursach.dto.WorkerAssignmentEvent;
+import org.springframework.data.domain.AbstractAggregateRoot;
 
 import java.util.*;
 
@@ -12,7 +15,7 @@ import java.util.*;
 @Setter
 @Getter
 @NoArgsConstructor
-public class Order {
+public class Order extends AbstractAggregateRoot<Order> {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="orders_id")
@@ -24,6 +27,7 @@ public class Order {
 
     @ManyToOne
     @JoinColumn(name="status")
+    @Setter(lombok.AccessLevel.NONE)
     private OrderStatus statuse;
 
     @ManyToOne
@@ -50,6 +54,12 @@ public class Order {
     )
     private List<Service> services;
 
+    public void setStatuse(OrderStatus status){
+        this.statuse = status;
+        OrderStatusChangeEvent event = new OrderStatusChangeEvent(this.id,status,this.client.getEmail());
+        registerEvent(event);
+    }
+
     public void replace_workers(HashSet<User> new_workers){
         Set<User> current = new HashSet<>(workers);
 
@@ -75,6 +85,9 @@ public class Order {
         if(workers.add(worker)){
             worker.getWorker_orders().add(this);
         }
+        WorkerAssignmentEvent event = new WorkerAssignmentEvent(this.id,worker.getEmail());
+        registerEvent(event);
+
     }
 
     private void deleteWorkers(User worker){
