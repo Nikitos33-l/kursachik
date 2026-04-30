@@ -11,6 +11,7 @@
     </parent>
 
     <artifactId>sto-main-app</artifactId>
+    <name>sto-main-app</name>
 
     <dependencies>
         <dependency>

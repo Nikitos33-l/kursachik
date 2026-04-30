@@ -19,6 +19,8 @@
         <module>sto-main-app</module>
         <module>notification-service</module>
         <module>eureka-server</module>
+        <module>gateway</module>
+        <module>orderService</module>
     </modules>
 
     <properties>
