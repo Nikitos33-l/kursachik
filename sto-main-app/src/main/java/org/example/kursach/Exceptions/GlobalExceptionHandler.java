@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-   @ExceptionHandler(exception = {
+   @ExceptionHandler({
            BadCredentialsException.class,
            EntityNotFoundException.class,
            AddressNotFoundException.class
