@@ -1,4 +1,4 @@
-package org.example.notificationservice.Controller;
+package org.example.notificationservice.Consumer;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +8,7 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 
 @RequiredArgsConstructor
-public class NotificationController {
+public class NotificationConsumer {
     EmailPushService service;
 
     @RabbitListener(queues = "${notification.queue}")

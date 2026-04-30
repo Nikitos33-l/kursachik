@@ -1,6 +1,7 @@
 package org.example.kursach.producer;
 
 import org.example.kursach.dto.OrderNotificationDto;
+import org.springframework.amqp.core.MessageDeliveryMode;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -19,7 +20,10 @@ public class NotificationRabbitMQProducer {
     }
 
     public void sendNotification(OrderNotificationDto notificationDto){
-        template.convertAndSend(exchange,routingKey,notificationDto);
+        template.convertAndSend(exchange,routingKey,notificationDto,message -> {
+            message.getMessageProperties().setDeliveryMode(MessageDeliveryMode.PERSISTENT);
+            return message;
+        });
     }
 
 }

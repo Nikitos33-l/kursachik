@@ -2,6 +2,7 @@ package org.example.notificationservice.Config;
 
 
 import org.springframework.amqp.core.*;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,17 +21,34 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public DirectExchange createDlxExchange(){
+        return new DirectExchange("notification.dlx.exchange",true,false);
+    }
+
+    @Bean
+    public Queue createDlxQueue(){
+        return new Queue("notification.dlx.queue",true);
+    }
+
+    @Bean
+    public Binding createDlxBinding(){
+        return BindingBuilder.bind(createDlxQueue()).to(createDlxExchange()).with("notification.dlx");
+    }
+
+    @Bean
     public Queue createQueue(){
-        return new Queue(queue,true);
+        return QueueBuilder.durable(queue).deadLetterExchange("notification.dlx.exchange").deadLetterRoutingKey("notification.dlx").build();
     }
 
     @Bean
     public TopicExchange createExchange(){
-        return new TopicExchange(exchange);
+        return new TopicExchange(exchange,true,false);
     }
 
     @Bean
-    public Binding createBinding(Queue queue,TopicExchange exchange){
+    public Binding createBinding(@Qualifier(value = "createQueue") Queue queue, TopicExchange exchange){
         return BindingBuilder.bind(queue).to(exchange).with(routingKey);
     }
+
+
 }

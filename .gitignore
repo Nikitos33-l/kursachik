@@ -1,6 +1,6 @@
-HELP.md
+sto-main-app/HELP.md
 target/
-.mvn/wrapper/maven-wrapper.jar
+sto-main-app/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
