@@ -20,7 +20,9 @@
         <module>notification-service</module>
         <module>eureka-server</module>
         <module>gateway</module>
-        <module>orderService</module>
+        <module>order-service</module>
+        <module>security-common</module>
+        <module>user-api-common</module>
     </modules>
 
     <properties>
