@@ -22,7 +22,7 @@
         <module>gateway</module>
         <module>order-service</module>
         <module>security-common</module>
-        <module>user-api-common</module>
+        <module>user-service-api-common</module>
     </modules>
 
     <properties>

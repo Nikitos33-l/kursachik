@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>user-api-common</artifactId>
+            <artifactId>user-service-api-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
         <dependency>

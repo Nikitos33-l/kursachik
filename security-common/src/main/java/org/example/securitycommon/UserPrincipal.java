@@ -6,6 +6,7 @@ import org.springframework.security.core.userdetails.UserDetails;
 import java.util.Collection;
 
 public record UserPrincipal(
+        Long userId,
         String email,
         Long stationId,
         Collection<? extends GrantedAuthority> authorities

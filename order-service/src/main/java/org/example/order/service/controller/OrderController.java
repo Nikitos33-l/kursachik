@@ -3,6 +3,7 @@ package org.example.order.service.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.order.service.dto.request.RequestOrderStatusDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
+import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.service.OrderManagementService;
 import org.example.securitycommon.UserPrincipal;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -34,5 +35,12 @@ public class OrderController {
     public List<ResponseOrderDto> findAll(@AuthenticationPrincipal UserPrincipal userPrincipal){
         return orderService.findAll(userPrincipal.stationId());
     }
+
+    @GetMapping("/getClientOrder")
+    public List<ResponseOrderSummaryDto> findUserOrder(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return orderService.findUserOrder(userPrincipal);
+    }
+
+
 
 }

@@ -18,13 +18,14 @@ public class AuthHeaderFilter extends OncePerRequestFilter {
         String stationId = request.getHeader("X-Station-Id");
         String email = request.getHeader("X-User-Email");
         String roles = request.getHeader("X-User-Roles");
+        String userId = request.getHeader("X-User-Id");
 
         if (roles != null) {
             var authorities = Arrays.stream(roles.split(","))
                     .map(SimpleGrantedAuthority::new)
                     .toList();
 
-            UserPrincipal principal = new UserPrincipal(email,
+            UserPrincipal principal = new UserPrincipal(Long.parseLong(userId),email,
                     stationId != null ? Long.parseLong(stationId) : null,
                     authorities
             );

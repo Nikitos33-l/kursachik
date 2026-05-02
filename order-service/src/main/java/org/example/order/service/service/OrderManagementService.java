@@ -6,15 +6,19 @@ import lombok.RequiredArgsConstructor;
 import org.example.order.service.dto.request.RequestOrderStatusDto;
 import org.example.order.service.dto.response.OrderItemDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
+import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
 import org.example.order.service.entity.OrderStatus;
 import org.example.order.service.mapper.OrderItemMapper;
 import org.example.order.service.mapper.OrderMapper;
 import org.example.order.service.repository.OrderRepository;
 import org.example.order.service.repository.OrderStatusRepository;
+import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.client.UserServiceFeignClient;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
+import org.example.user.api.requestDto.OrderVehicleMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
+import org.example.user.api.responceDto.VehicleDto;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -72,5 +76,17 @@ public class OrderManagementService {
 
     private OrderUserMappingRequest buildRequest(Order order){
         return new OrderUserMappingRequest(order.getId(),order.getClientId(),order.getWorkerIds(),order.getVehicleId());
+    }
+
+    @Transactional
+    public List<ResponseOrderSummaryDto> findUserOrder(UserPrincipal userPrincipal) {
+        List<Order> orders = orderRepository.findAllByClientId(userPrincipal.userId());
+        List<OrderVehicleMappingRequest> request = orders.stream().map(this::buildVehicleRequest).toList();
+        Map<Long, VehicleDto> response = userServiceClient.getCarsInfo(request);
+
+    }
+
+    private OrderVehicleMappingRequest buildVehicleRequest(Order order){
+        return new OrderVehicleMappingRequest(order.getId(), order.getVehicleId());
     }
 }
