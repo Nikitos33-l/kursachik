@@ -1,12 +1,13 @@
 package org.example.orderservice.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.orderservice.dto.request.RequestOrderStatusDto;
 import org.example.orderservice.dto.response.ResponseOrderDto;
+import org.example.orderservice.entity.OrderStatus;
 import org.example.orderservice.service.OrderManagementService;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.example.securitycommon.UserPrincipal;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/order")
@@ -19,4 +20,11 @@ public class OrderController {
     public ResponseOrderDto find(@PathVariable Long id){
         return orderService.find(id);
     }
+
+    @PutMapping("/updateStatus/{id}")
+    @PreAuthorize("hasRole('WORKER')")
+    public void updateOrderStatus(@PathVariable Long id, @RequestBody RequestOrderStatusDto status){
+        orderService.updateStatus(id, status);
+    }
+
 }
