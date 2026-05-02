@@ -2,6 +2,8 @@ package org.example.order.service.repository;
 
 import org.example.order.service.entity.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -9,7 +11,9 @@ import java.util.List;
 @Repository
 public interface OrderRepository extends JpaRepository<Order,Long> {
 
-    List<Order> findAllByStationId(Long stationId);
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.stationId =:stationId")
+    List<Order> findAllByStationId(@Param("stationId")Long stationId);
 
-    List<Order> findAllByClientId(Long clientId);
+    @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems WHERE o.clientId=:clientId")
+    List<Order> findAllByClientId(@Param("clientId") Long clientId);
 }

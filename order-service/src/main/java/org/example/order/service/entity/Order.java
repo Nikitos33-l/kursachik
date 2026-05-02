@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.BatchSize;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
 import java.util.*;
@@ -40,8 +41,8 @@ public class Order extends AbstractAggregateRoot<Order> {
     @ElementCollection
     @CollectionTable(name = "orders_workers",joinColumns = @JoinColumn(name = "order_id"))
     @Column(name = "worker_id")
+    @BatchSize(size = 20)
     private Set<Long> workerIds;
-
 
     public void setStatus(OrderStatus status){
         this.status = status;

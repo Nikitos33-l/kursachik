@@ -6,6 +6,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+import java.util.List;
+
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface OrderItemMapper {
 
@@ -13,4 +15,6 @@ public interface OrderItemMapper {
     @Mapping(target = "name", source = "serviceName")
     @Mapping(target = "price", source = "priceAtOrder")
     OrderItemDto toDto(OrderItem orderItem);
+
+    List<OrderItemDto> toDtoList(List<OrderItem> orderItemList);
 }

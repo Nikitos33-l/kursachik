@@ -2,8 +2,11 @@ package org.example.order.service.mapper;
 
 import org.example.order.service.dto.response.OrderItemDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
+import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
+import org.example.station.service.api.common.dto.response.ResponseStationDto;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
+import org.example.user.api.responceDto.VehicleDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
@@ -23,6 +26,17 @@ public interface OrderMapper {
             Order order,
             OrderInfoFromUserServiceDto response,
             List<OrderItemDto> orderItem
+    );
+
+    @Mapping(target = "status", source = "order.status.name")
+    @Mapping(target = "vehicle", source = "vehicle")
+    @Mapping(target = "services", source = "services")
+    @Mapping(target = "stationName", source = "station.name")
+    ResponseOrderSummaryDto toResponseOrderSummaryDto(
+            Order order,
+            VehicleDto vehicle,
+            ResponseStationDto station,
+            List<OrderItemDto> services
     );
 
 }

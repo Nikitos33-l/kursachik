@@ -1,6 +1,8 @@
 package org.example.order.service.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.order.service.dto.request.PutOrderRequestDto;
+import org.example.order.service.dto.request.RequestOrderDto;
 import org.example.order.service.dto.request.RequestOrderStatusDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
 import org.example.order.service.dto.response.ResponseOrderSummaryDto;
@@ -39,6 +41,17 @@ public class OrderController {
     @GetMapping("/getClientOrder")
     public List<ResponseOrderSummaryDto> findUserOrder(@AuthenticationPrincipal UserPrincipal userPrincipal){
         return orderService.findUserOrder(userPrincipal);
+    }
+
+    @PutMapping("/updateOrder/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void updateOrder(@PathVariable Long orderId, @RequestBody PutOrderRequestDto requestDto){
+        orderService.updateOrder(requestDto,orderId);
+    }
+
+    @PostMapping("/create")
+    public void create_order(@RequestBody RequestOrderDto order, @AuthenticationPrincipal UserPrincipal userPrincipal){
+        orderService.createOrder(order,userPrincipal);
     }
 
 

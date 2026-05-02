@@ -1,4 +1,7 @@
 package org.example.station.service.api.common.dto.request;
 
-public class RequestOrderMappingStationDto {
+public record RequestOrderMappingStationDto(
+        Long orderId,
+        Long stationId
+) {
 }
