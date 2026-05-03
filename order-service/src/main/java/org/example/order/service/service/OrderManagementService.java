@@ -139,11 +139,24 @@ public class OrderManagementService {
     }
 
     @Transactional
+    public List<ResponseOrderDto> findWorkerOrder(UserPrincipal userPrincipal) {
+        List<Order> orders = orderRepository.findAllByWorkerId(userPrincipal.userId());
+
+        if (orders.isEmpty()) return new ArrayList<>();
+
+        return getResponseOrderDto(orders);
+    }
+
+    @Transactional
     public List<ResponseOrderDto> findAll(Long stationId) {
         List<Order> orders = orderRepository.findAllByStationId(stationId);
 
         if (orders.isEmpty()) return new ArrayList<>();
 
+        return getResponseOrderDto(orders);
+    }
+
+    private List<ResponseOrderDto> getResponseOrderDto(List<Order> orders){
         List<OrderUserMappingRequest> requests = orders.stream().map(this::buildUserRequest).toList();
         Map<Long,OrderInfoFromUserServiceDto> response = userServiceClient.getOrdersInfo(requests);
 
@@ -175,7 +188,7 @@ public class OrderManagementService {
                 .map(order -> {
                     VehicleDto vehicle = userResponse.get(order.getVehicleId());
                     ResponseStationDto station = stationResponse.get(order.getStationId());
-                    List<OrderItemDto> services = orderItemMapper.toDtoList(order.getOrderItems()); // Твой маппер для айтемов
+                    List<OrderItemDto> services = orderItemMapper.toDtoList(order.getOrderItems());
 
                     return orderMapper.toResponseOrderSummaryDto(order, vehicle, station, services);
                 })

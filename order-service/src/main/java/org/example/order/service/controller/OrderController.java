@@ -54,6 +54,12 @@ public class OrderController {
         orderService.createOrder(order,userPrincipal);
     }
 
+    @GetMapping("/getWorkerOrder")
+    @PreAuthorize("hasRole('WORKER')")
+    public List<ResponseOrderDto> findWorkerOrders(@AuthenticationPrincipal UserPrincipal userPrincipal){
+        return orderService.findWorkerOrder(userPrincipal);
+    }
+
 
 
 }

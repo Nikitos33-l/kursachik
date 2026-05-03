@@ -31,7 +31,7 @@ public interface UserServiceFeignClient {
     @GetMapping("/api/users/validate-workers")
     ValidationResponse validateWorkers(@RequestParam Set<Long> ids);
 
-    @PostMapping("/api/users/cars/get-or-create")
+    @PostMapping("/api/cars/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);
 
 
