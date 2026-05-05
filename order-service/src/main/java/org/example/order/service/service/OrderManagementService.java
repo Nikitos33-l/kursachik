@@ -173,6 +173,11 @@ public class OrderManagementService {
     }
 
     @Transactional
+    public void deleteOrderByClient(Long userId) {
+        orderRepository.deleteByClientId(userId);
+    }
+
+    @Transactional
     public List<ResponseOrderSummaryDto> findUserOrder(UserPrincipal userPrincipal) {
         List<Order> orders = orderRepository.findAllByClientId(userPrincipal.userId());
 
@@ -203,5 +208,6 @@ public class OrderManagementService {
     private RequestOrderMappingStationDto buildStationRequest(Order order){
         return new RequestOrderMappingStationDto(order.getId(), order.getStationId());
     }
+
 
 }

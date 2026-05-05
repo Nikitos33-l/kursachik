@@ -60,6 +60,11 @@ public class OrderController {
         return orderService.findWorkerOrder(userPrincipal);
     }
 
+    @DeleteMapping("/delete/by/userId/{id}")
+    public void deleteOrderByUser(@PathVariable Long userId){
+        orderService.deleteOrderByClient(userId);
+    }
+
 
 
 }

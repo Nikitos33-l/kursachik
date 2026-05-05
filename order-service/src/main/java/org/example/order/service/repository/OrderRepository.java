@@ -20,4 +20,6 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems" +
             " JOIN o.workerIds w WHERE w=:workerId")
     List<Order> findAllByWorkerId(@Param("workerId") Long workerId);
+
+    void deleteByClientId(Long clientId);
 }

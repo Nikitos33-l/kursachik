@@ -1,4 +1,4 @@
-package org.example.order.service.config;
+package org.example.user.service.config;
 
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.AuthHeaderFilter;

@@ -31,7 +31,7 @@ public class User {
     @JoinColumn(name="role_id")
     private Role role;
 
-    @OneToMany
+    @OneToMany(cascade = CascadeType.REMOVE)
     @JoinColumn(name = "user_id")
     private List<Vehicle> vehicles;
 
