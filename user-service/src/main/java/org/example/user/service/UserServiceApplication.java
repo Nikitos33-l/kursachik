@@ -1,10 +1,11 @@
 package org.example.user.service;
 
+import org.example.user.api.FetchClientConfig;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 
-@SpringBootApplication
+@SpringBootApplication(exclude = {FetchClientConfig.class})
 @EnableDiscoveryClient
 public class UserServiceApplication {
 

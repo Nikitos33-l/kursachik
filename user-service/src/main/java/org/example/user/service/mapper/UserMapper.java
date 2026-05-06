@@ -1,5 +1,7 @@
 package org.example.user.service.mapper;
 
+import org.example.user.api.responceDto.UserDto;
+import org.example.user.api.responceDto.VehicleDto;
 import org.example.user.service.dto.response.ResponseUserDto;
 import org.example.user.service.dto.response.UserShortResponse;
 import org.example.user.service.entity.User;
@@ -20,4 +22,8 @@ public interface UserMapper {
     UserShortResponse toShortResponse(User user);
 
     List<UserShortResponse> toListShortResponse(List<User> users);
+
+    UserDto toDto(User user);
+
+    List<UserDto> toDtoList(List<User> users);
 }

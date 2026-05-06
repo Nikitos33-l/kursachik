@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class CommonDtoApplication {
+public class ApiServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(CommonDtoApplication.class, args);
+        SpringApplication.run(ApiServiceApplication.class, args);
     }
 
 }

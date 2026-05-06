@@ -3,6 +3,8 @@ package org.example.user.service.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.UserPrincipal;
+import org.example.user.api.requestDto.OrderUserMappingRequest;
+import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.dto.response.ResponseUserDto;
@@ -13,6 +15,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -53,6 +56,17 @@ public class UserController {
     public void addUser(@RequestBody @Valid RequestAddUserDto userDto,@AuthenticationPrincipal UserPrincipal userPrincipal){
         userService.addUser(userDto,userPrincipal);
     }
+
+    @GetMapping("/get/orderInfo")
+    OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request){
+        return userService.getInfoForOrder(request);
+    }
+
+    @GetMapping("/getAll/order")
+    Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request){
+        return userService.getInfoForOrders(request);
+    }
+
 
 
 
