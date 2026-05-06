@@ -1,13 +1,13 @@
 package org.example.user.service.entity;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.List;
 
 @Setter
+@Builder
+@AllArgsConstructor
 @Getter
 @Entity
 @NoArgsConstructor
@@ -21,7 +21,7 @@ public class User {
     @Column (name="password_hash")
     private String password;
 
-    @Column(name = "email")
+    @Column(name = "email",unique = true)
     private String email;
 
     @Column(name ="user_name")

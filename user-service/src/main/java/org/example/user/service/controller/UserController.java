@@ -1,7 +1,10 @@
 package org.example.user.service.controller;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.UserPrincipal;
+import org.example.user.service.dto.request.RequestAddUserDto;
+import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.dto.response.ResponseUserDto;
 import org.example.user.service.dto.response.UserShortResponse;
 import org.example.user.service.service.UserService;
@@ -16,8 +19,6 @@ import java.util.List;
 @RequestMapping("/api/user")
 public class UserController {
     private final UserService userService;
-
-
 
     @GetMapping("/getAll")
     @PreAuthorize("hasRole('ADMIN')")
@@ -36,6 +37,23 @@ public class UserController {
     public void delete(@PathVariable Long id){
         userService.deleteUser(id);
     }
+
+    @GetMapping("/get/info/{id}")
+    public UserShortResponse getInfo(@PathVariable Long id){
+        return userService.getInfo(id);
+    }
+
+    @PutMapping("/update/{id}")
+    public void updateUser(@PathVariable Long id, @RequestBody @Valid RequestUpdateUserDto userDto){
+        userService.updateUser(id,userDto);
+    }
+
+    @PostMapping("/add")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
+    public void addUser(@RequestBody @Valid RequestAddUserDto userDto,@AuthenticationPrincipal UserPrincipal userPrincipal){
+        userService.addUser(userDto,userPrincipal);
+    }
+
 
 
 }
