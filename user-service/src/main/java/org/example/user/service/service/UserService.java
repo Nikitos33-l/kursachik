@@ -2,13 +2,15 @@ package org.example.user.service.service;
 
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.order.service.api.common.client.OrderServiceClient;
 import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
+import org.example.user.api.requestDto.OrderVehicleMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.UserDto;
+import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.api.responceDto.VehicleDto;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
@@ -38,13 +40,14 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
+    private final CarService carService;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ResponseUserDto> getAll(Long stationId) {
         return userMapper.toListResponseUserDto(userRepository.findAll(stationId));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<UserShortResponse> getAllWorkers(Long stationId) {
         return userMapper.toListShortResponse(userRepository.
                 findAllByRole_NameAndWorkplaceId("WORKER",stationId));
@@ -60,7 +63,7 @@ public class UserService {
         orderServiceClient.deleteByUser(id);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public UserShortResponse getInfo(Long id) {
         return userMapper.toShortResponse(getById(id));
     }
@@ -72,7 +75,7 @@ public class UserService {
         user.setName(userDto.name().trim());
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public Map<Long, OrderInfoFromUserServiceDto> getInfoForOrders(List<OrderUserMappingRequest> request) {
         Set<Long> workerIds = request.stream()
                 .flatMap(r-> r.workersId().stream()).collect(Collectors.toSet());
@@ -85,14 +88,14 @@ public class UserService {
 
         Map<Long,User> workers = getUsersMap(workerIds);
         Map<Long,User> clients = getUsersMap(clientIds);
-        Map<Long,Vehicle> vehicles = getVehiclesMap(vehiclesIds);
+        Map<Long,Vehicle> vehicles = carService.getVehiclesMap(vehiclesIds);
 
         return request.stream().collect(Collectors.toMap(
                 OrderUserMappingRequest::orderId,r->
                         new OrderInfoFromUserServiceDto(
                             getClientOfOrder(r.userId(),clients),
                             getWorkersOfOrder(r.workersId(),workers),
-                            getVehicleOfOrder(r.vehicleId(),vehicles)
+                            carService.getVehicleOfOrder(r.vehicleId(),vehicles)
                         )
 
         ));
@@ -104,15 +107,6 @@ public class UserService {
         ));
     }
 
-    private Map<Long,Vehicle> getVehiclesMap(Set<Long> ids){
-        return vehicleRepository.findAllByIdIn(ids).stream().collect(Collectors.toMap(
-                Vehicle::getId,v->v
-        ));
-    }
-    private VehicleDto getVehicleOfOrder(Long vehicleId,Map<Long,Vehicle> vehicles){
-        return vehicleMapper.toDto(vehicles.get(vehicleId));
-    }
-
     private UserDto getClientOfOrder(Long clientId,Map<Long,User> clients){
         return userMapper.toDto(clients.get(clientId));
     }
@@ -121,7 +115,7 @@ public class UserService {
         return workerIds.stream().map(id-> userMapper.toDto(workers.get(id))).toList();
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public OrderInfoFromUserServiceDto getInfoForOrder(OrderUserMappingRequest request) {
         Vehicle vehicle = getVehicleById(request.vehicleId());
         User client = getById(request.userId());
@@ -141,6 +135,21 @@ public class UserService {
     private User getById(Long id){
          return userRepository.
                 findById(id).orElseThrow(()->new EntityNotFoundException("Нету пользователя с таким id"));
+    }
+
+    @Transactional(readOnly = true)
+    public ValidationResponse validateWorkers(Set<Long> ids) {
+        List<User> workers = userRepository.findAllByIdIn(ids);
+        if(workers.size()!=ids.size()){
+            return new ValidationResponse(false,null);
+        }
+
+        Map<Long,String> emails = workers.stream().collect(Collectors.toMap(
+                User::getId,User::getEmail
+        ));
+
+        return new ValidationResponse(true,emails);
+
     }
 
     @Transactional

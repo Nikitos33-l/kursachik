@@ -19,16 +19,16 @@ import java.util.Set;
 @FeignClient(name = "userService")
 public interface UserServiceFeignClient {
 
-    @GetMapping("api/users/get/orderInfo")
+    @GetMapping("api/user/get/orderInfo")
     OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request);
 
-    @GetMapping("api/users/getAll/order")
+    @GetMapping("api/user/getAll/order")
     Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request);
 
-    @GetMapping("api/users/getAll/cars")
+    @GetMapping("api/cars/getAll")
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request);
 
-    @GetMapping("/api/users/validate-workers")
+    @GetMapping("/api/user/validate-workers")
     ValidationResponse validateWorkers(@RequestParam Set<Long> ids);
 
     @PostMapping("/api/cars/get-or-create")

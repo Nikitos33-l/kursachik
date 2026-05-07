@@ -1,7 +1,6 @@
 package org.example.order.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.order.service.dto.request.PutOrderRequestDto;
 import org.example.order.service.dto.request.RequestOrderDto;
@@ -31,6 +30,7 @@ import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.api.responceDto.VehicleDto;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
@@ -45,7 +45,7 @@ public class OrderManagementService {
     private final OrderStatusRepository orderStatusRepository;
     private final StationServiceClient stationServiceClient;
 
-    @Transactional
+    @Transactional(readOnly = true)
     public ResponseOrderDto find(Long id) {
         Order dbOrder = getOrderOrThrow(id);
         OrderInfoFromUserServiceDto response = userServiceClient.getOrderInfo(buildUserRequest(dbOrder));
@@ -138,7 +138,7 @@ public class OrderManagementService {
         return orderStatusRepository.findById(id).orElseThrow(()-> new EntityNotFoundException("Статус с таким id не был найден"));
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ResponseOrderDto> findWorkerOrder(UserPrincipal userPrincipal) {
         List<Order> orders = orderRepository.findAllByWorkerId(userPrincipal.userId());
 
@@ -147,7 +147,7 @@ public class OrderManagementService {
         return getResponseOrderDto(orders);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ResponseOrderDto> findAll(Long stationId) {
         List<Order> orders = orderRepository.findAllByStationId(stationId);
 
@@ -177,7 +177,7 @@ public class OrderManagementService {
         orderRepository.deleteByClientId(userId);
     }
 
-    @Transactional
+    @Transactional(readOnly = true)
     public List<ResponseOrderSummaryDto> findUserOrder(UserPrincipal userPrincipal) {
         List<Order> orders = orderRepository.findAllByClientId(userPrincipal.userId());
 

@@ -4,7 +4,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
+import org.example.user.api.requestDto.OrderVehicleMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
+import org.example.user.api.responceDto.ValidationResponse;
+import org.example.user.api.responceDto.VehicleDto;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.dto.response.ResponseUserDto;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -66,6 +70,12 @@ public class UserController {
     Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request){
         return userService.getInfoForOrders(request);
     }
+
+    @GetMapping("/validate-workers")
+    ValidationResponse validateWorkers(@RequestParam Set<Long> ids){
+        return userService.validateWorkers(ids);
+    }
+
 
 
 
