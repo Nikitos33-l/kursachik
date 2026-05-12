@@ -16,22 +16,22 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>sto-main-app</module>
         <module>notification-service</module>
         <module>eureka-server</module>
         <module>gateway</module>
         <module>order-service</module>
         <module>security-common</module>
-        <module>user-service-api-common</module>
         <module>user-service</module>
         <module>user-service-api-common</module>
         <module>station-service-api-common</module>
+        <module>station-service</module>
+        <module>order-service-api-common</module>
     </modules>
 
     <properties>
         <java.version>21</java.version>
         <lombok.version>1.18.34</lombok.version>
-        <spring-cloud.version>2025.1.0</spring-cloud.version>
+        <spring-cloud.version>2025.0.0</spring-cloud.version>
     </properties>
 
     <dependencyManagement>
@@ -40,6 +40,13 @@
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
                 <version>1.21.4</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>4.0.6</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>

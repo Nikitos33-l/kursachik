@@ -7,11 +7,9 @@ import lombok.RequiredArgsConstructor;
 import org.example.order.service.api.common.client.OrderServiceClient;
 import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
-import org.example.user.api.requestDto.OrderVehicleMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.UserDto;
 import org.example.user.api.responceDto.ValidationResponse;
-import org.example.user.api.responceDto.VehicleDto;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.dto.response.ResponseUserDto;
@@ -60,7 +58,7 @@ public class UserService {
         } catch (FeignException e) {
             throw new RuntimeException("Не удалось удалить связанные заказы. Попробуйте позже.");
         }
-        orderServiceClient.deleteByUser(id);
+        userRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
