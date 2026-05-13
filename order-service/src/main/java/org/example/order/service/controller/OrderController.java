@@ -61,10 +61,12 @@ public class OrderController {
     }
 
     @DeleteMapping("/delete/by/userId/{id}")
-    public void deleteOrderByUser(@PathVariable Long userId){
-        orderService.deleteOrderByClient(userId);
+    public void deleteOrderByUser(@PathVariable Long id){
+        orderService.deleteOrderByClient(id);
     }
 
-
-
+    @DeleteMapping("/delete/by/stationId/{id}")
+    public void deleteByStation(@PathVariable Long id){
+        orderService.deleteByOrder(id);
+    }
 }

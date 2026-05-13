@@ -37,9 +37,7 @@ public class Station {
     @Column(name = "order_id")
     Set<Long> orderIds;
 
-    @OneToMany
-    @JoinColumn(name =  "station_id")
+    @OneToMany(mappedBy = "station",cascade = CascadeType.REMOVE,orphanRemoval = true)
     private List<Service> services;
-
 
 }

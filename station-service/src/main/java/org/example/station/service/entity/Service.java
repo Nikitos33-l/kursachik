@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Setter
 @Getter
 @Entity
@@ -18,6 +20,10 @@ public class Service {
     private String name;
 
     @Column(name="price")
-    private double price;
+    private BigDecimal price;
+
+    @ManyToOne
+    @JoinColumn(name = "station_id")
+    private Station station;
 
 }

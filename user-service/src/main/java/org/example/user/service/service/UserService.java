@@ -189,4 +189,8 @@ public class UserService {
         return user.authorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
     }
 
+    @Transactional
+    public void deleteByWorkplace(Long id) {
+        userRepository.deleteById(id);
+    }
 }

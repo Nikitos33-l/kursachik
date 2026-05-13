@@ -15,7 +15,7 @@ import org.example.order.service.repository.OrderRepository;
 import org.example.order.service.repository.OrderStatusRepository;
 import org.example.securitycommon.UserPrincipal;
 import org.example.station.service.api.common.client.StationServiceClient;
-import org.example.station.service.api.common.dto.response.ResponseStationDto;
+import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
 import org.example.user.api.client.UserServiceFeignClient;
@@ -115,7 +115,7 @@ class OrderManagementServiceTest {
         OrderStatus newStatus = new OrderStatus();
 
         when(userServiceClient.getOrCreateCar(any(CarRequestDto.class))).thenReturn(savedVehicle);
-        when(stationServiceClient.validateStationServices(eq(10L), anyList())).thenReturn(stationResponse);
+        when(stationServiceClient.validateStationAndGetServices(eq(10L), anyList())).thenReturn(stationResponse);
         when(orderStatusRepository.findById("NEW")).thenReturn(Optional.of(newStatus));
 
         orderManagementService.createOrder(requestDto, principal);
@@ -131,7 +131,7 @@ class OrderManagementServiceTest {
         UserPrincipal principal = new UserPrincipal(100L, "test@test.com", 1L, List.of());
 
         when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(1L, "A", "B", "C"));
-        when(stationServiceClient.validateStationServices(anyLong(), anyList()))
+        when(stationServiceClient.validateStationAndGetServices(anyLong(), anyList()))
                 .thenReturn(new StationServicesResponse(false, List.of()));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
@@ -248,7 +248,7 @@ class OrderManagementServiceTest {
         order.setStationId(stationId);
 
         VehicleDto vehicleDto = new VehicleDto(vehicleId, "Audi", "A4", "1111-1");
-        ResponseStationDto stationDto = new ResponseStationDto(stationId, "СТО на Немиге", "Минск");
+        SummaryResponseStationDto stationDto = new SummaryResponseStationDto(stationId, "СТО на Немиге", "Минск");
 
         when(orderRepository.findAllByClientId(clientId)).thenReturn(List.of(order));
 

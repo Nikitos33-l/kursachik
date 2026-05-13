@@ -7,10 +7,7 @@ import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.api.responceDto.VehicleDto;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
@@ -33,6 +30,9 @@ public interface UserServiceFeignClient {
 
     @PostMapping("/api/cars/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);
+
+    @DeleteMapping("/api/user/delete/by/workplace/{id}")
+    void deleteWorkersByWorkplace(@PathVariable Long id);
 
 
 }

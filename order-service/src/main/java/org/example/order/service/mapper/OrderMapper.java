@@ -4,7 +4,7 @@ import org.example.order.service.dto.response.OrderItemDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
 import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
-import org.example.station.service.api.common.dto.response.ResponseStationDto;
+import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.VehicleDto;
 import org.mapstruct.Mapper;
@@ -35,7 +35,7 @@ public interface OrderMapper {
     ResponseOrderSummaryDto toResponseOrderSummaryDto(
             Order order,
             VehicleDto vehicle,
-            ResponseStationDto station,
+            SummaryResponseStationDto station,
             List<OrderItemDto> services
     );
 

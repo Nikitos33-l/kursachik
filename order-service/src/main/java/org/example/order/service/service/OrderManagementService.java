@@ -19,7 +19,7 @@ import org.example.order.service.repository.OrderStatusRepository;
 import org.example.securitycommon.UserPrincipal;
 import org.example.station.service.api.common.client.StationServiceClient;
 import org.example.station.service.api.common.dto.request.RequestOrderMappingStationDto;
-import org.example.station.service.api.common.dto.response.ResponseStationDto;
+import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
 import org.example.user.api.client.UserServiceFeignClient;
@@ -63,7 +63,7 @@ public class OrderManagementService {
         CarRequestDto vehicleRequest = new CarRequestDto(vehicle.make(), vehicle.model(), vehicle.number(), userPrincipal.userId());
         VehicleDto vehicleResponse = userServiceClient.getOrCreateCar(vehicleRequest);
 
-        StationServicesResponse stationResponse = stationServiceClient.validateStationServices(
+        StationServicesResponse stationResponse = stationServiceClient.validateStationAndGetServices(
                 requestOrderDto.stationId(),
                 requestOrderDto.serviceId()
         );
@@ -174,7 +174,7 @@ public class OrderManagementService {
 
     @Transactional
     public void deleteOrderByClient(Long userId) {
-        orderRepository.deleteByClientId(userId);
+        orderRepository.deleteAllByClientId(userId);
     }
 
     @Transactional(readOnly = true)
@@ -187,12 +187,12 @@ public class OrderManagementService {
         Map<Long, VehicleDto> userResponse = userServiceClient.getCarsInfo(userRequest);
 
         List<RequestOrderMappingStationDto> stationRequest = orders.stream().map(this::buildStationRequest).toList();
-        Map<Long, ResponseStationDto> stationResponse = stationServiceClient.getStationsByOrders(stationRequest);
+        Map<Long, SummaryResponseStationDto> stationResponse = stationServiceClient.getStationsByOrders(stationRequest);
 
         return orders.stream()
                 .map(order -> {
                     VehicleDto vehicle = userResponse.get(order.getVehicleId());
-                    ResponseStationDto station = stationResponse.get(order.getStationId());
+                    SummaryResponseStationDto station = stationResponse.get(order.getStationId());
                     List<OrderItemDto> services = orderItemMapper.toDtoList(order.getOrderItems());
 
                     return orderMapper.toResponseOrderSummaryDto(order, vehicle, station, services);
@@ -210,4 +210,8 @@ public class OrderManagementService {
     }
 
 
+    @Transactional
+    public void deleteByOrder(Long id) {
+        orderRepository.deleteAllByStationId(id);
+    }
 }
