@@ -191,6 +191,6 @@ public class UserService {
 
     @Transactional
     public void deleteByWorkplace(Long id) {
-        userRepository.deleteById(id);
+        userRepository.deleteAllByWorkplaceId(id);
     }
 }

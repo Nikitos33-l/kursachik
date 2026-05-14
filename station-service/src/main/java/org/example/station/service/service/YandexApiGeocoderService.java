@@ -31,40 +31,49 @@ public class YandexApiGeocoderService implements GeocoderService{
 
     @Override
     public AddressCoordinate getCoordinate(String address) {
-        URI requestUrl = URI.create(buildUrl(address));
+        try {
+            URI requestUrl = URI.create(buildUrl(address));
+            ResponseEntity<String> response = restTemplate.getForEntity(requestUrl, String.class);
 
-        ResponseEntity<String> response = restTemplate.getForEntity(requestUrl, String.class);
+            return parseToAddressCoordinate(response.getBody());
 
-        if(response.getStatusCode().isError()){
-            throw new GetAddressCoordinateExceptions("Ошибка при получении адреса");
+        } catch (org.springframework.web.client.HttpStatusCodeException e) {
+            throw new GetAddressCoordinateExceptions("Ошибка при обращении к геокодеру: " + e.getStatusCode());
+        } catch (Exception e) {
+            throw new GetAddressCoordinateExceptions("Непредвиденная ошибка при получении координат");
         }
-
-        return parseToAddressCoordinate(response.getBody());
     }
 
     private AddressCoordinate parseToAddressCoordinate(String body) {
         try {
             JsonNode root = objectMapper.readTree(body);
-            JsonNode posNode = root.path("response")
-                    .path("GeoObjectCollection")
-                    .path("featureMember")
-                    .get(0)
-                    .path("GeoObject")
-                    .path("Point")
-                    .path("pos");
 
-            if (posNode.isMissingNode()) {
+            JsonNode featureMember = root.path("response")
+                    .path("GeoObjectCollection")
+                    .path("featureMember");
+
+            if (!featureMember.has(0)) {
                 throw new GetAddressCoordinateExceptions("Адрес не найден");
             }
 
-            String[] coords = posNode.asText().split(" ");
-            BigDecimal lon = BigDecimal.valueOf(Double.parseDouble(coords[0]));
-            BigDecimal lat = BigDecimal.valueOf(Double.parseDouble(coords[1]));
+            String pos = featureMember.get(0)
+                    .path("GeoObject")
+                    .path("Point")
+                    .path("pos")
+                    .asText("");
 
-            return new AddressCoordinate(lon,lat);
+            if (pos.isEmpty()) {
+                throw new GetAddressCoordinateExceptions("Координаты не найдены");
+            }
+
+            String[] coords = pos.split(" ");
+            BigDecimal lon = new BigDecimal(coords[0]);
+            BigDecimal lat = new BigDecimal(coords[1]);
+
+            return new AddressCoordinate(lon, lat);
 
         } catch (JsonProcessingException e) {
-            throw new RuntimeException(e);
+            throw new RuntimeException("Ошибка парсинга ответа геокодера", e);
         }
     }
 

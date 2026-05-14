@@ -38,7 +38,6 @@ public class AuthService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = "users", allEntries = true)
     public TokenPair register(RegisterRequest request) {
         if (userRepository.findByEmail(request.email()) != null) {
             throw new IllegalStateException("Пользователь с таким email уже существует");
