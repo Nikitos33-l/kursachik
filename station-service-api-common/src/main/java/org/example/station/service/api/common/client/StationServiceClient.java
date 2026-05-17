@@ -14,10 +14,10 @@ import java.util.Map;
 @FeignClient(name = "station-service")
 public interface StationServiceClient {
 
-    @GetMapping("/api/stations/getAll/by/station")
+    @GetMapping("/api/stations/internal/getAll/by/station")
     Map<Long, SummaryResponseStationDto> getStationsByOrders(@RequestBody List<RequestOrderMappingStationDto> request);
 
-    @GetMapping("/api/service/{stationId}/validate")
+    @GetMapping("/api/service/internal/{stationId}/validate")
     StationServicesResponse validateStationAndGetServices(
             @PathVariable Long stationId,
             @RequestBody List<Long> serviceIds

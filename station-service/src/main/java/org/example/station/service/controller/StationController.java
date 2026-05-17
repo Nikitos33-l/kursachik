@@ -47,7 +47,7 @@ public class StationController {
         stationService.update(id,stationDto);
     }
 
-    @GetMapping("/getAll/by/station")
+    @GetMapping("/internal/getAll/by/station")
     public Map<Long, SummaryResponseStationDto> getStationsByOrders(@RequestBody List<RequestOrderMappingStationDto> request){
         return stationService.getStationsByOrders(request);
     }

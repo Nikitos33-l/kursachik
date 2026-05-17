@@ -50,7 +50,7 @@ public class ServiceController {
         service.update(id,serviceDto);
     }
 
-    @GetMapping("/{stationId}/validate")
+    @GetMapping("/internal/{stationId}/validate")
     StationServicesResponse validateStationAndGetServices(
             @PathVariable Long stationId,
             @RequestBody List<Long> serviceIds

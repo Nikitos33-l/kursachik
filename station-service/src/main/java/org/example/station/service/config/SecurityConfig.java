@@ -30,6 +30,8 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/api/service/internal/**").permitAll()
+                        .requestMatchers("/api/stations/internal/**").permitAll()
                         .anyRequest().authenticated()
                 )
 
