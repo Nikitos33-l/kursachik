@@ -16,12 +16,12 @@ import java.util.Map;
 public class CarsController {
     private final CarService carService;
 
-    @GetMapping("/getAll")
+    @GetMapping("/internal/getAll")
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request){
         return carService.getVehiclesForOrders(request);
     }
 
-    @PostMapping("/api/cars/get-or-create")
+    @PostMapping("/internal/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest){
         return carService.getOrCreateCar(carRequest);
     }

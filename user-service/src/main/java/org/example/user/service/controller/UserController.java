@@ -61,22 +61,22 @@ public class UserController {
         userService.addUser(userDto,userPrincipal);
     }
 
-    @GetMapping("/get/orderInfo")
+    @GetMapping("/internal/get/orderInfo")
     public OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request){
         return userService.getInfoForOrder(request);
     }
 
-    @GetMapping("/getAll/order")
+    @GetMapping("/internal/getAll/order")
     public Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request){
         return userService.getInfoForOrders(request);
     }
 
-    @GetMapping("/validate-workers")
+    @GetMapping("/internal/validate-workers")
     public ValidationResponse validateWorkers(@RequestParam Set<Long> ids){
         return userService.validateWorkers(ids);
     }
 
-    @DeleteMapping("/delete/by/workplace/{id}")
+    @DeleteMapping("/internal/delete/by/workplace/{id}")
     public void deleteWorkersByWorkplace(@PathVariable Long id){
         userService.deleteByWorkplace(id);
     }

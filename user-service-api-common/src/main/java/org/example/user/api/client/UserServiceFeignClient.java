@@ -16,22 +16,22 @@ import java.util.Set;
 @FeignClient(name = "userService")
 public interface UserServiceFeignClient {
 
-    @GetMapping("api/user/get/orderInfo")
+    @GetMapping("api/user/internal/get/orderInfo")
     OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request);
 
-    @GetMapping("api/user/getAll/order")
+    @GetMapping("api/user/internal/getAll/order")
     Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request);
 
-    @GetMapping("api/cars/getAll")
+    @GetMapping("api/cars/internal/getAll")
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request);
 
-    @GetMapping("/api/user/validate-workers")
+    @GetMapping("/api/user/internal/validate-workers")
     ValidationResponse validateWorkers(@RequestParam Set<Long> ids);
 
-    @PostMapping("/api/cars/get-or-create")
+    @PostMapping("/api/cars/internal/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);
 
-    @DeleteMapping("/api/user/delete/by/workplace/{id}")
+    @DeleteMapping("/api/user/internal/delete/by/workplace/{id}")
     void deleteWorkersByWorkplace(@PathVariable Long id);
 
 

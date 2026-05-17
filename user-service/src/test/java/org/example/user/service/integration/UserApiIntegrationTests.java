@@ -1,29 +1,19 @@
-package org.example.user.service;
+package org.example.user.service.integration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.order.service.api.common.client.OrderServiceClient;
+import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.entity.Role;
 import org.example.user.service.entity.User;
-import org.example.user.service.repository.RoleRepository;
-import org.example.user.service.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
+import org.example.user.service.entity.Vehicle;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
@@ -32,35 +22,10 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@Testcontainers
-@AutoConfigureMockMvc
-class UserServiceApplicationTests {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private RoleRepository roleRepository;
+class UserApiIntegrationTests extends BaseIntegrationTest {
 
     @MockitoBean
-    private OrderServiceClient orderServiceClient;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private ObjectMapper objectMapper;
-
-    @ServiceConnection
-    @Container
-    static PostgreSQLContainer<?> container = new PostgreSQLContainer<>("postgres:18.4-alpine");
-
-    @BeforeEach
-    void cleanUp() {
-        userRepository.deleteAll();
-        roleRepository.deleteAll();
-    }
+    OrderServiceClient orderServiceClient;
 
     @Test
     @DisplayName("Успешное получение всех пользователей админом")
@@ -100,10 +65,7 @@ class UserServiceApplicationTests {
     @Test
     @DisplayName("Успешное добавление нового пользователя супер-админом")
     void shouldAddUserBySuperAdmin() throws Exception {
-        Role adminRole = new Role();
-        adminRole.setId(1L);
-        adminRole.setName("ADMIN");
-        roleRepository.save(adminRole);
+        createAndSaveRole("ADMIN");
 
         RequestAddUserDto dto = new RequestAddUserDto("Иван","ivan@gmail.com","pass","ADMIN",12L);
 
@@ -119,10 +81,7 @@ class UserServiceApplicationTests {
     @Test
     @DisplayName("При добавлении пользователя обычным ADMIN-ом, stationId должен браться из заголовка ADMIN-а")
     void shouldAddUserByAdminUsingAdminsStationId() throws Exception {
-        Role workerRole = new Role();
-        workerRole.setId(2L);
-        workerRole.setName("WORKER");
-        roleRepository.save(workerRole);
+        createAndSaveRole("WORKER");
 
         RequestAddUserDto dto = new RequestAddUserDto("WorkerName", "worker@gmail.com", "pass", "WORKER", 12L);
 
@@ -140,11 +99,7 @@ class UserServiceApplicationTests {
     @Test
     @DisplayName("Ошибка 409 (IllegalStateException) при попытке добавить пользователя с уже существующим email")
     void shouldFailWhenUserWithEmailAlreadyExists() throws Exception {
-        Role adminRole = new Role();
-        adminRole.setId(1L);
-        adminRole.setName("ADMIN");
-        roleRepository.save(adminRole);
-
+        createAndSaveRole("ADMIN");
         createAndSaveTestUser(100L, "Ivan");
 
         RequestAddUserDto duplicateDto = new RequestAddUserDto("Ivan2", "test_ivan@mail.com", "pass", "ADMIN", 100L);
@@ -173,10 +128,7 @@ class UserServiceApplicationTests {
     @Test
     @DisplayName("Успешное получение только сотрудников (WORKER) конкретной станции")
     void shouldGetAllWorkersForStation() throws Exception {
-        Role workerRole = new Role();
-        workerRole.setId(2L);
-        workerRole.setName("WORKER");
-        roleRepository.save(workerRole);
+        Role workerRole = createAndSaveRole("WORKER");
 
         User worker = User.builder()
                 .email("worker@mail.com").name("Vasya").workplaceId(100L).role(workerRole).build();
@@ -193,14 +145,69 @@ class UserServiceApplicationTests {
                 .andExpect(jsonPath("$[0].name").value("Vasya"));
     }
 
+    @Test
+    @DisplayName("Internal: Успешное получение информации для одного заказа без заголовков авторизации")
+    void shouldGetOrderInfoInternal() throws Exception {
+        User savedUser = createAndSaveTestUser(100L, "Vasya");
+        Vehicle savedVehicle = createAndSaveVehicle("Toyota", "Camry", "AA1111-7");
 
-    private HttpHeaders getSecurityHeaders(String role, Long stationId, Long userId) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("X-User-Id", String.valueOf(userId));
-        headers.add("X-Station-Id", stationId != null ? String.valueOf(stationId) : "");
-        headers.add("X-User-Roles", role);
-        headers.add("X-User-Email", "test@mail.com");
-        return headers;
+        OrderUserMappingRequest requestDto = new OrderUserMappingRequest(
+                1L,
+                savedUser.getId(),
+                Set.of(savedUser.getId()),
+                savedVehicle.getId()
+        );
+
+        mockMvc.perform(get("/api/user/internal/get/orderInfo")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestDto)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    @DisplayName("Internal: Успешное получение информации для списка заказов без заголовков авторизации")
+    void shouldGetOrdersInfoInternal() throws Exception {
+        User savedUser = createAndSaveTestUser(100L, "Petr");
+        Vehicle savedVehicle = createAndSaveVehicle("BMW", "X5", "BB2222-7");
+
+        List<OrderUserMappingRequest> requestList = List.of(
+                new OrderUserMappingRequest(
+                        10L,
+                        savedUser.getId(),
+                        Set.of(savedUser.getId()),
+                        savedVehicle.getId()
+                )
+        );
+
+        mockMvc.perform(get("/api/user/internal/getAll/order")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestList)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$['10']").exists());
+    }
+
+    @Test
+    @DisplayName("Internal: Успешная валидация сотрудников по ID без заголовков авторизации")
+    void shouldValidateWorkersInternal() throws Exception {
+        User worker1 = User.builder().email("worker1@mail.com").name("Ivan").build();
+        User worker2 = User.builder().email("worker2@mail.com").name("Petr").build();
+        userRepository.saveAll(List.of(worker1, worker2));
+
+        mockMvc.perform(get("/api/user/internal/validate-workers")
+                        .param("ids", worker1.getId().toString(), worker2.getId().toString())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.exists").value(true))
+                .andExpect(jsonPath("$.emails.['" + worker1.getId() + "']").value("worker1@mail.com"))
+                .andExpect(jsonPath("$.emails.['" + worker2.getId() + "']").value("worker2@mail.com"));
+    }
+
+    @Test
+    @DisplayName("Internal: Успешное deletion сотрудников конкретной автостанции без заголовков авторизации")
+    void shouldDeleteWorkersByWorkplaceInternal() throws Exception {
+        mockMvc.perform(delete("/api/user/internal/delete/by/workplace/{id}", 100L)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 
     private User createAndSaveTestUser(Long stationId, String name) {
@@ -210,5 +217,20 @@ class UserServiceApplicationTests {
                 .workplaceId(stationId)
                 .build();
         return userRepository.save(user);
+    }
+
+    private Role createAndSaveRole(String roleName) {
+        Role role = new Role();
+        role.setName(roleName);
+        return roleRepository.save(role);
+    }
+
+    private Vehicle createAndSaveVehicle(String make, String model, String number) {
+        Vehicle vehicle = Vehicle.builder()
+                .make(make)
+                .model(model)
+                .number(number)
+                .build();
+        return vehicleRepository.save(vehicle);
     }
 }
