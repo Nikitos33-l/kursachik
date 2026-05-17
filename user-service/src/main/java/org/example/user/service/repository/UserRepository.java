@@ -11,7 +11,7 @@ import java.util.Set;
 
 @Repository
 public interface UserRepository extends JpaRepository<User,Long> {
-    @Query("SELECT u FROM User u JOIN FETCH u.role WHERE u.workplaceId =:stationId")
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.role WHERE u.workplaceId =:stationId")
     List<User> findAll(@Param("stationId") Long stationId);
 
     List<User> findAllByRole_NameAndWorkplaceId(String role,Long stationId);
