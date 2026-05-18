@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @FeignClient(name = "userService")
 public interface UserServiceFeignClient {
@@ -26,7 +27,7 @@ public interface UserServiceFeignClient {
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request);
 
     @GetMapping("/api/user/internal/validate-workers")
-    ValidationResponse validateWorkers(@RequestParam Set<Long> ids);
+    ValidationResponse validateWorkers(@RequestParam Set<UUID> ids);
 
     @PostMapping("/api/cars/internal/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);

@@ -111,7 +111,7 @@ public class OrderManagementService {
             order.setStatus(getStatusOrThrow(requestDto.statusId()));
         }
 
-        Set<Long> workerIds = requestDto.workersId();
+        Set<UUID> workerIds = requestDto.workersId();
 
         if(workerIds.isEmpty()){
             order.clearWorkers();
@@ -173,7 +173,7 @@ public class OrderManagementService {
     }
 
     @Transactional
-    public void deleteOrderByClient(Long userId) {
+    public void deleteOrderByClient(UUID userId) {
         orderRepository.deleteAllByClientId(userId);
     }
 

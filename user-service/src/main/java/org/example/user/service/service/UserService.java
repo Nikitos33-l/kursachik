@@ -48,11 +48,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserShortResponse> getAllWorkers(Long stationId) {
         return userMapper.toListShortResponse(userRepository.
-                findAllByRole_NameAndWorkplaceId("WORKER",stationId));
+                findAllByRole_NameAndWorkplaceId("WORKER", stationId));
     }
 
     @Transactional
-    public void deleteUser(Long id) {
+    public void deleteUser(UUID id) {
         try {
             orderServiceClient.deleteByUser(id);
         } catch (FeignException e) {
@@ -62,12 +62,12 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserShortResponse getInfo(Long id) {
+    public UserShortResponse getInfo(UUID id) {
         return userMapper.toShortResponse(getById(id));
     }
 
     @Transactional
-    public void updateUser(Long id, RequestUpdateUserDto userDto) {
+    public void updateUser(UUID id, RequestUpdateUserDto userDto) {
         User user = getById(id);
         user.setEmail(userDto.email().trim());
         user.setName(userDto.name().trim());
@@ -75,42 +75,41 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public Map<Long, OrderInfoFromUserServiceDto> getInfoForOrders(List<OrderUserMappingRequest> request) {
-        Set<Long> workerIds = request.stream()
-                .flatMap(r-> r.workersId().stream()).collect(Collectors.toSet());
+        Set<UUID> workerIds = request.stream()
+                .flatMap(r -> r.workersId().stream()).collect(Collectors.toSet());
 
-        Set<Long> clientIds = request.stream()
+        Set<UUID> clientIds = request.stream()
                 .map(OrderUserMappingRequest::userId).collect(Collectors.toSet());
 
         Set<Long> vehiclesIds = request.stream()
                 .map(OrderUserMappingRequest::vehicleId).collect(Collectors.toSet());
 
-        Map<Long,User> workers = getUsersMap(workerIds);
-        Map<Long,User> clients = getUsersMap(clientIds);
-        Map<Long,Vehicle> vehicles = carService.getVehiclesMap(vehiclesIds);
+        Map<UUID, User> workers = getUsersMap(workerIds);
+        Map<UUID, User> clients = getUsersMap(clientIds);
+        Map<Long, Vehicle> vehicles = carService.getVehiclesMap(vehiclesIds);
 
         return request.stream().collect(Collectors.toMap(
-                OrderUserMappingRequest::orderId,r->
+                OrderUserMappingRequest::orderId, r ->
                         new OrderInfoFromUserServiceDto(
-                            getClientOfOrder(r.userId(),clients),
-                            getWorkersOfOrder(r.workersId(),workers),
-                            carService.getVehicleOfOrder(r.vehicleId(),vehicles)
+                                getClientOfOrder(r.userId(), clients),
+                                getWorkersOfOrder(r.workersId(), workers),
+                                carService.getVehicleOfOrder(r.vehicleId(), vehicles)
                         )
-
         ));
     }
 
-    private Map<Long,User> getUsersMap(Set<Long> ids){
+    private Map<UUID, User> getUsersMap(Set<UUID> ids) {
         return userRepository.findAllByIdIn(ids).stream().collect(Collectors.toMap(
-                User::getId,w->w
+                User::getId, w -> w
         ));
     }
 
-    private UserDto getClientOfOrder(Long clientId,Map<Long,User> clients){
+    private UserDto getClientOfOrder(UUID clientId, Map<UUID, User> clients) {
         return userMapper.toDto(clients.get(clientId));
     }
 
-    private List<UserDto> getWorkersOfOrder(Set<Long> workerIds,Map<Long,User> workers){
-        return workerIds.stream().map(id-> userMapper.toDto(workers.get(id))).toList();
+    private List<UserDto> getWorkersOfOrder(Set<UUID> workerIds, Map<UUID, User> workers) {
+        return workerIds.stream().map(id -> userMapper.toDto(workers.get(id))).toList();
     }
 
     @Transactional(readOnly = true)
@@ -125,67 +124,68 @@ public class UserService {
                 .build();
     }
 
-    private Vehicle getVehicleById(Long id){
+    private Vehicle getVehicleById(Long id) {
         return vehicleRepository.findById(id)
-                .orElseThrow(()->new EntityNotFoundException("Автомобиля с таким id не существует"));
+                .orElseThrow(() -> new EntityNotFoundException("Автомобиля с таким id не существует"));
     }
 
-    private User getById(Long id){
-         return userRepository.
-                findById(id).orElseThrow(()->new EntityNotFoundException("Нету пользователя с таким id"));
+    private User getById(UUID id) {
+        return userRepository.
+                findById(id).orElseThrow(() -> new EntityNotFoundException("Нету пользователя с таким id"));
     }
 
     @Transactional(readOnly = true)
-    public ValidationResponse validateWorkers(Set<Long> ids) {
+    public ValidationResponse validateWorkers(Set<UUID> ids) {
         List<User> workers = userRepository.findAllByIdIn(ids);
-        if(workers.size()!=ids.size()){
-            return new ValidationResponse(false,null);
+        if (workers.size() != ids.size()) {
+            return new ValidationResponse(false, null);
         }
 
-        Map<Long,String> emails = workers.stream().collect(Collectors.toMap(
-                User::getId,User::getEmail
+        Map<UUID, String> emails = workers.stream().collect(Collectors.toMap(
+                User::getId, User::getEmail
         ));
 
-        return new ValidationResponse(true,emails);
-
+        return new ValidationResponse(true, emails);
     }
 
     @Transactional
     public void addUser(RequestAddUserDto userDto, UserPrincipal userPrincipal) {
         checkUserExists(userDto.email());
         Role role = getRoleByName(userDto.role());
-        Long stationId = getStationId(userDto,userPrincipal);
+        Long stationId = getStationId(userDto, userPrincipal);
 
         User user = User.builder()
+                .id(UUID.randomUUID())
                 .name(userDto.name())
                 .email(userDto.email())
-                .role(role).password(passwordEncoder.encode(userDto.password()))
-                .workplaceId(stationId).build();
+                .role(role)
+                .password(passwordEncoder.encode(userDto.password()))
+                .workplaceId(stationId)
+                .build();
 
         userRepository.save(user);
     }
 
-    private void checkUserExists(String email){
-        if(userRepository.existsByEmail(email)){
+    private void checkUserExists(String email) {
+        if (userRepository.existsByEmail(email)) {
             throw new IllegalStateException("Пользователь с таким email уже существует");
         }
     }
 
-    private Role getRoleByName(String name){
+    private Role getRoleByName(String name) {
         return roleRepository.findByName(name)
-                .orElseThrow(()-> new EntityNotFoundException("Роли с таким именем не существует"));
+                .orElseThrow(() -> new EntityNotFoundException("Роли с таким именем не существует"));
     }
 
-    private Long getStationId(RequestAddUserDto userDto,UserPrincipal userPrincipal){
-        if(isSuperAdmin(userPrincipal)){
+    private Long getStationId(RequestAddUserDto userDto, UserPrincipal userPrincipal) {
+        if (isSuperAdmin(userPrincipal)) {
             return userDto.stationId();
-        }
-        else{
+        } else {
             return userPrincipal.stationId();
         }
     }
 
-    private boolean isSuperAdmin(UserPrincipal user){
+    private boolean isSuperAdmin(UserPrincipal user) {
         return user.authorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPERADMIN"));
     }
 

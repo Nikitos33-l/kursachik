@@ -50,14 +50,19 @@ public class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
+    private final UUID userId = UUID.randomUUID();
+    private final UUID clientId = UUID.randomUUID();
+    private final UUID workerId = UUID.randomUUID();
+
     @Test
     @DisplayName("Успешное получение всех работников станции")
     void getAllWorkers_Success() {
         Long stationId = 1L;
         User worker = new User();
+        worker.setId(workerId);
         worker.setName("Ivan");
 
-        UserShortResponse response = new UserShortResponse(1L, "Ivan","ivan@gmail.com");
+        UserShortResponse response = new UserShortResponse(workerId, "Ivan", "ivan@gmail.com");
 
         when(userRepository.findAllByRole_NameAndWorkplaceId("WORKER", stationId))
                 .thenReturn(List.of(worker));
@@ -72,18 +77,15 @@ public class UserServiceTest {
     @Test
     @DisplayName("Удаление пользователя и его заказов через Feign")
     void deleteUser_Success() {
-        Long userId = 1L;
-
         userService.deleteUser(userId);
 
         verify(orderServiceClient, times(1)).deleteByUser(userId);
-        verify(userRepository,times(1)).deleteById(userId);
+        verify(userRepository, times(1)).deleteById(userId);
     }
 
     @Test
     @DisplayName("Ошибка при удалении пользователя, если Feign клиент упал")
     void deleteUser_FeignException() {
-        Long userId = 1L;
         doThrow(FeignException.class).when(orderServiceClient).deleteByUser(userId);
 
         assertThrows(RuntimeException.class, () -> userService.deleteUser(userId));
@@ -105,9 +107,9 @@ public class UserServiceTest {
     @Test
     @DisplayName("Успешное обновление данных пользователя")
     void updateUser_Success() {
-        Long userId = 1L;
-        RequestUpdateUserDto updateDto = new RequestUpdateUserDto( "New Name","new@mail.com");
+        RequestUpdateUserDto updateDto = new RequestUpdateUserDto("New Name", "new@mail.com");
         User user = new User();
+        user.setId(userId);
         user.setEmail("old@mail.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
@@ -119,31 +121,30 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Ошибка, если пользователь для обновления не найден")
+    @DisplayName("Ошибка, если... пользователь для обновления не найден")
     void updateUser_UserNotFound() {
-        when(userRepository.findById(anyLong())).thenReturn(Optional.empty());
+        when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class,
-                () -> userService.updateUser(1L, new RequestUpdateUserDto("e", "n")));
+                () -> userService.updateUser(userId, new RequestUpdateUserDto("e", "n")));
     }
 
     @Test
     @DisplayName("Сбор информации для нескольких заказов")
     void getInfoForOrders_Success() {
         Long orderId = 100L;
-        Long clientId = 1L;
         Long vehicleId = 50L;
-        Set<Long> workerIds = Set.of(2L);
+        Set<UUID> workerIds = Set.of(workerId);
+
         OrderUserMappingRequest request = new OrderUserMappingRequest(orderId, clientId, workerIds, vehicleId);
 
         User client = User.builder().id(clientId).name("Client").build();
-        User worker = User.builder().id(2L).name("Worker").build();
+        User worker = User.builder().id(workerId).name("Worker").build();
         Vehicle vehicle = new Vehicle();
 
-        UserDto userDto = new UserDto(1L, "Name", "Email");
+        UserDto userDto = new UserDto(clientId, "Name", "Email");
 
-        when(userRepository.findAllByIdIn(anySet())).thenReturn(List.of(client, worker));
-        when(carService.getVehiclesMap(anySet())).thenReturn(Map.of(vehicleId, vehicle));
+        when(userRepository.findAllByIdIn(any())).thenReturn(List.of(client, worker));        when(carService.getVehiclesMap(anySet())).thenReturn(Map.of(vehicleId, vehicle));
         when(userMapper.toDto(any(User.class))).thenReturn(userDto);
 
         Map<Long, OrderInfoFromUserServiceDto> result = userService.getInfoForOrders(List.of(request));
@@ -157,7 +158,7 @@ public class UserServiceTest {
     @Test
     @DisplayName("Валидация списка работников - ошибка, если найдены не все")
     void validateWorkers_Fail() {
-        Set<Long> ids = Set.of(1L, 2L);
+        Set<UUID> ids = Set.of(UUID.randomUUID(), UUID.randomUUID()); // Сет из UUID
         when(userRepository.findAllByIdIn(ids)).thenReturn(List.of(new User()));
 
         ValidationResponse response = userService.validateWorkers(ids);

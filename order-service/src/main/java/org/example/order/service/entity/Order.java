@@ -32,7 +32,7 @@ public class Order extends AbstractAggregateRoot<Order> {
     private Long stationId;
 
     @Column(name = "client_id")
-    private Long clientId;
+    private UUID clientId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "order_id")
@@ -42,23 +42,23 @@ public class Order extends AbstractAggregateRoot<Order> {
     @CollectionTable(name = "orders_workers",joinColumns = @JoinColumn(name = "order_id"))
     @Column(name = "worker_id")
     @BatchSize(size = 20)
-    private Set<Long> workerIds;
+    private Set<UUID> workerIds;
 
     public void setStatus(OrderStatus status){
         this.status = status;
         registerEvent(new Object());
     }
 
-    public void replaceWorkers(Set<Long> newWorkerIds, Map<Long, String> workerEmails) {
-        Set<Long> currentIds = new HashSet<>(this.workerIds);
+    public void replaceWorkers(Set<UUID> newWorkerIds, Map<UUID, String> workerEmails) {
+        Set<UUID> currentIds = new HashSet<>(this.workerIds);
 
-        for (Long oldId : currentIds) {
+        for (UUID oldId : currentIds) {
             if (!newWorkerIds.contains(oldId)) {
                 deleteWorker(oldId);
             }
         }
 
-        for (Long newId : newWorkerIds) {
+        for (UUID newId : newWorkerIds) {
             if (!currentIds.contains(newId)) {
                 String email = workerEmails.get(newId);
                 addWorker(newId, email);
@@ -70,13 +70,13 @@ public class Order extends AbstractAggregateRoot<Order> {
         this.workerIds.clear();
     }
 
-    private void addWorker(Long workerId, String email) {
+    private void addWorker(UUID workerId, String email) {
         if (this.workerIds.add(workerId)) {
             registerEvent(new Object());
         }
     }
 
-    private void deleteWorker(Long workerId) {
+    private void deleteWorker(UUID workerId) {
         this.workerIds.remove(workerId);
     }
 }

@@ -1,8 +1,10 @@
 package org.example.user.api.responceDto;
 
 
+import java.util.UUID;
+
 public record UserDto(
-        Long id,
+        UUID id,
         String email,
         String name
 ) {

@@ -1,9 +1,10 @@
 package org.example.user.api.responceDto;
 
 import java.util.Map;
+import java.util.UUID;
 
 public record ValidationResponse(
         boolean exists,
-        Map<Long,String> emails
+        Map<UUID,String> emails
 ) {
 }

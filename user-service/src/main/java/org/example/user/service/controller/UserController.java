@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @RestController
 @RequiredArgsConstructor
@@ -41,17 +42,17 @@ public class UserController {
 
     @DeleteMapping("/delete/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void delete(@PathVariable Long id){
+    public void delete(@PathVariable UUID id){
         userService.deleteUser(id);
     }
 
     @GetMapping("/get/info/{id}")
-    public UserShortResponse getInfo(@PathVariable Long id){
+    public UserShortResponse getInfo(@PathVariable UUID id){
         return userService.getInfo(id);
     }
 
     @PutMapping("/update/{id}")
-    public void updateUser(@PathVariable Long id, @RequestBody @Valid RequestUpdateUserDto userDto){
+    public void updateUser(@PathVariable UUID id, @RequestBody @Valid RequestUpdateUserDto userDto){
         userService.updateUser(id,userDto);
     }
 
@@ -72,7 +73,7 @@ public class UserController {
     }
 
     @GetMapping("/internal/validate-workers")
-    public ValidationResponse validateWorkers(@RequestParam Set<Long> ids){
+    public ValidationResponse validateWorkers(@RequestParam Set<UUID> ids){
         return userService.validateWorkers(ids);
     }
 

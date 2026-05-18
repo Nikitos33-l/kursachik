@@ -14,6 +14,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
@@ -27,13 +28,15 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @MockitoBean
     OrderServiceClient orderServiceClient;
 
+    private final UUID authUserId = UUID.randomUUID();
+
     @Test
     @DisplayName("Успешное получение всех пользователей админом")
     void shouldGetAllUsersForAdmin() throws Exception {
         createAndSaveTestUser(100L, "Ivan");
 
         mockMvc.perform(get("/api/user/getAll")
-                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -44,7 +47,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Отказ в доступе при попытке получить всех пользователей без роли ADMIN")
     void shouldFailGetAllUsersWithoutAdminRole() throws Exception {
         mockMvc.perform(get("/api/user/getAll")
-                        .headers(getSecurityHeaders("ROLE_WORKER", 100L, 2L))
+                        .headers(getSecurityHeaders("ROLE_WORKER", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
@@ -56,7 +59,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         doNothing().when(orderServiceClient).deleteByUser(savedUser.getId());
 
         mockMvc.perform(delete("/api/user/delete/{id}", savedUser.getId())
-                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, 1L)))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId)))
                 .andExpect(status().isOk());
 
         assertThat(userRepository.findById(savedUser.getId())).isEmpty();
@@ -70,7 +73,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         RequestAddUserDto dto = new RequestAddUserDto("Иван","ivan@gmail.com","pass","ADMIN",12L);
 
         mockMvc.perform(post("/api/user/add")
-                        .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
@@ -86,7 +89,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         RequestAddUserDto dto = new RequestAddUserDto("WorkerName", "worker@gmail.com", "pass", "WORKER", 12L);
 
         mockMvc.perform(post("/api/user/add")
-                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
                 .andExpect(status().isOk());
@@ -105,7 +108,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         RequestAddUserDto duplicateDto = new RequestAddUserDto("Ivan2", "test_ivan@mail.com", "pass", "ADMIN", 100L);
 
         mockMvc.perform(post("/api/user/add")
-                        .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(duplicateDto)))
                 .andExpect(status().isConflict());
@@ -119,7 +122,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         RequestUpdateUserDto invalidDto = new RequestUpdateUserDto("","");
 
         mockMvc.perform(put("/api/user/update/{id}", savedUser.getId())
-                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
                 .andExpect(status().isBadRequest());
@@ -130,15 +133,18 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldGetAllWorkersForStation() throws Exception {
         Role workerRole = createAndSaveRole("WORKER");
 
+        // Здесь тоже добавил явную генерацию ID для обоих пользователей
         User worker = User.builder()
+                .id(UUID.randomUUID())
                 .email("worker@mail.com").name("Vasya").workplaceId(100L).role(workerRole).build();
         User admin = User.builder()
+                .id(UUID.randomUUID())
                 .email("admin@mail.com").name("Petr").workplaceId(100L).build();
 
         userRepository.saveAll(List.of(worker, admin));
 
         mockMvc.perform(get("/api/user/get/all/workers")
-                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, 1L))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
@@ -189,8 +195,9 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @Test
     @DisplayName("Internal: Успешная валидация сотрудников по ID без заголовков авторизации")
     void shouldValidateWorkersInternal() throws Exception {
-        User worker1 = User.builder().email("worker1@mail.com").name("Ivan").build();
-        User worker2 = User.builder().email("worker2@mail.com").name("Petr").build();
+        // Добавил генерацию ID для worker1 и worker2
+        User worker1 = User.builder().id(UUID.randomUUID()).email("worker1@mail.com").name("Ivan").build();
+        User worker2 = User.builder().id(UUID.randomUUID()).email("worker2@mail.com").name("Petr").build();
         userRepository.saveAll(List.of(worker1, worker2));
 
         mockMvc.perform(get("/api/user/internal/validate-workers")
@@ -212,6 +219,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
     private User createAndSaveTestUser(Long stationId, String name) {
         User user = User.builder()
+                .id(UUID.randomUUID())
                 .email("test_" + name.toLowerCase() + "@mail.com")
                 .name(name)
                 .workplaceId(stationId)

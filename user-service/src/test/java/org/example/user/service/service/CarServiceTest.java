@@ -13,10 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,6 +29,8 @@ public class CarServiceTest {
 
     @InjectMocks
     private CarService carService;
+
+    private final UUID clientId = UUID.randomUUID();
 
     @Test
     @DisplayName("Сбор информации о машинах для списка заказов")
@@ -51,7 +50,9 @@ public class CarServiceTest {
         assertNotNull(result);
         assertTrue(result.containsKey(orderId));
         assertEquals(dto, result.get(orderId));
-        verify(vehicleRepository).findAllByIdIn(anySet());
+
+        // Меняем anySet() на any() для избежания конфликта типов дженериков
+        verify(vehicleRepository).findAllByIdIn(any());
     }
 
     @Test
@@ -73,7 +74,8 @@ public class CarServiceTest {
     @Test
     @DisplayName("Получение существующей машины при вызове getOrCreateCar")
     void getOrCreateCar_ReturnsExisting() {
-        CarRequestDto request = new CarRequestDto("Make","Model", "B222BB",1L);
+        // Передаем clientId (UUID) вместо 1L в конце
+        CarRequestDto request = new CarRequestDto("Make","Model", "B222BB", clientId);
         Vehicle existingVehicle = Vehicle.builder().id(1L).number("B222BB").build();
         VehicleDto dto = new VehicleDto(1L, "Model", "Make", "B222BB");
 
@@ -90,7 +92,8 @@ public class CarServiceTest {
     @Test
     @DisplayName("Создание новой машины, если она не найдена по номеру")
     void getOrCreateCar_CreatesNew() {
-        CarRequestDto request = new CarRequestDto("NewMake", "NewModel", "C333CC",1L);
+        // Передаем clientId (UUID) вместо 1L в конце
+        CarRequestDto request = new CarRequestDto("NewMake", "NewModel", "C333CC", clientId);
         VehicleDto dto = new VehicleDto(2L, "NewModel", "NewMake", "C333CC");
 
         when(vehicleRepository.findByNumber("C333CC")).thenReturn(Optional.empty());

@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 import java.util.List;
+import java.util.UUID; // Добавили импорт UUID
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -27,8 +28,9 @@ class CarApiIntegrationTest extends BaseIntegrationTest {
                 .build();
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
 
+        // Используем сохраненный ID машины из БД (savedVehicle.getId()) вместо захардкоженного 1L
         List<OrderVehicleMappingRequest> requestList = List.of(
-                new OrderVehicleMappingRequest(1L, 1L)
+                new OrderVehicleMappingRequest(1L, savedVehicle.getId())
         );
 
         mockMvc.perform(get("/api/cars/internal/getAll")
@@ -44,7 +46,8 @@ class CarApiIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Успешное создание автомобиля в реальной БД, если его там не было")
     void shouldCreateCarInDatabaseIfNotExist() throws Exception {
-        CarRequestDto carRequestDto = new CarRequestDto("BMW", "X5", "BB2222-7",1L);
+        // Заменили 1L на UUID.randomUUID() для соответствия новому типу clientId
+        CarRequestDto carRequestDto = new CarRequestDto("BMW", "X5", "BB2222-7", UUID.randomUUID());
 
         assertThat(vehicleRepository.findAll()).isEmpty();
 

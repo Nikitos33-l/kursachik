@@ -11,6 +11,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.UUID;
 
 public class AuthHeaderFilter extends OncePerRequestFilter {
     @Override
@@ -25,7 +26,7 @@ public class AuthHeaderFilter extends OncePerRequestFilter {
                     .map(SimpleGrantedAuthority::new)
                     .toList();
 
-            UserPrincipal principal = new UserPrincipal(Long.parseLong(userId),email,
+            UserPrincipal principal = new UserPrincipal(UUID.fromString(userId),email,
                     stationId != null ? Long.parseLong(stationId) : null,
                     authorities
             );

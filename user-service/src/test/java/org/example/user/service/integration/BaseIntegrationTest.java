@@ -15,6 +15,8 @@ import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.UUID; // Добавили импорт для UUID
+
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
@@ -22,7 +24,6 @@ public class BaseIntegrationTest {
 
     @Autowired
     protected MockMvc mockMvc;
-
 
     @Autowired
     protected ObjectMapper objectMapper;
@@ -47,9 +48,9 @@ public class BaseIntegrationTest {
         roleRepository.deleteAll();
     }
 
-    protected HttpHeaders getSecurityHeaders(String role, Long stationId, Long userId) {
+    protected HttpHeaders getSecurityHeaders(String role, Long stationId, UUID userId) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("X-User-Id", String.valueOf(userId));
+        headers.add("X-User-Id", userId != null ? userId.toString() : "");
         headers.add("X-Station-Id", stationId != null ? String.valueOf(stationId) : "");
         headers.add("X-User-Roles", role);
         headers.add("X-User-Email", "test@mail.com");

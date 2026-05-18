@@ -15,6 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -55,7 +57,7 @@ public class AuthService {
         return generateTokenPair(user.getId(), user.getEmail(), "CLIENT", null);
     }
 
-    private TokenPair generateTokenPair(Long userId,String email, String role, Long stationId) {
+    private TokenPair generateTokenPair(UUID userId, String email, String role, Long stationId) {
         String access = jwtService.createAccessToken(userId,email, role, stationId);
         String refresh = jwtService.createRefreshToken(email);
         return new TokenPair(access, refresh);

@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
+import java.util.UUID; // Импортируем UUID
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,7 +28,7 @@ class JwtServiceTest {
     @Test
     @DisplayName("Создание Access Token с корректными клеймами")
     void createAccessToken_ShouldContainCorrectClaims() {
-        Long userId = 1L;
+        UUID userId = UUID.randomUUID();
         String email = "test@mail.com";
         String role = "ROLE_ADMIN";
         Long stationId = 10L;
@@ -41,7 +42,8 @@ class JwtServiceTest {
                 .getBody();
 
         assertEquals(email, claims.getSubject());
-        assertEquals(userId, claims.get("userId", Long.class));
+
+        assertEquals(userId.toString(), claims.get("userId", String.class));
         assertEquals(role, claims.get("role", String.class));
         assertEquals(stationId, claims.get("stationId", Long.class));
 

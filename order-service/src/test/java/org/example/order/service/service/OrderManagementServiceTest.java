@@ -18,6 +18,7 @@ import org.example.station.service.api.common.client.StationServiceClient;
 import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
+import org.example.order.service.service.OrderManagementService;
 import org.example.user.api.client.UserServiceFeignClient;
 import org.example.user.api.requestDto.CarRequestDto;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
@@ -50,6 +51,10 @@ class OrderManagementServiceTest {
 
     @InjectMocks
     private OrderManagementService orderManagementService;
+
+    private final UUID clientId = UUID.randomUUID();
+    private final UUID workerId = UUID.randomUUID();
+    private final Long vehicleId = 300L;
 
     @Test
     @DisplayName("find: Успешный возврат обогащенного заказа")
@@ -105,9 +110,9 @@ class OrderManagementServiceTest {
         RequestVehicleDto vehicleDto = new RequestVehicleDto("BMW", "X5", "7777-7");
         RequestOrderDto requestDto = new RequestOrderDto(vehicleDto, List.of(1L, 2L), 10L);
 
-        UserPrincipal principal = new UserPrincipal(100L, "test@test.com", 1L, List.of());
+        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
 
-        VehicleDto savedVehicle = new VehicleDto(300L, "BMW", "X5", "7777-7");
+        VehicleDto savedVehicle = new VehicleDto(vehicleId, "BMW", "X5", "7777-7");
         StationServicesResponse stationResponse = new StationServicesResponse(true, List.of(
                 new ServiceDetailDto(1L, "Замена масла", new BigDecimal(50)),
                 new ServiceDetailDto(2L, "Диагностика", new BigDecimal(30))
@@ -128,9 +133,9 @@ class OrderManagementServiceTest {
     void createOrder_StationNotFound() {
         RequestOrderDto requestDto = new RequestOrderDto(new RequestVehicleDto("A", "B", "C"), List.of(1L), 99L);
 
-        UserPrincipal principal = new UserPrincipal(100L, "test@test.com", 1L, List.of());
+        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
 
-        when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(1L, "A", "B", "C"));
+        when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(vehicleId, "A", "B", "C"));
         when(stationServiceClient.validateStationAndGetServices(anyLong(), anyList()))
                 .thenReturn(new StationServicesResponse(false, List.of()));
 
@@ -179,18 +184,20 @@ class OrderManagementServiceTest {
     void updateOrder_ReplaceWorkers_Success() {
         Long orderId = 1L;
         Order order = createOrder(orderId);
-        order.setWorkerIds(new HashSet<>(Set.of(200L)));
+        order.setWorkerIds(new HashSet<>(Set.of(workerId)));
 
         OrderStatus status = createStatus();
         Order spyOrder = spy(order);
         doReturn(status).when(spyOrder).getStatus();
 
-        Set<Long> newWorkers = Set.of(201L, 202L);
+        UUID newWorker1 = UUID.randomUUID();
+        UUID newWorker2 = UUID.randomUUID();
+        Set<UUID> newWorkers = Set.of(newWorker1, newWorker2);
         PutOrderRequestDto requestDto = new PutOrderRequestDto(newWorkers,"COMPLETED");
 
         ValidationResponse validationResponse = new ValidationResponse(true, Map.of(
-                201L, "worker1@test.com",
-                202L, "worker2@test.com"
+                newWorker1, "worker1@test.com",
+                newWorker2, "worker2@test.com"
         ));
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(spyOrder));
@@ -211,8 +218,8 @@ class OrderManagementServiceTest {
         Order spyOrder = spy(order);
         doReturn(status).when(spyOrder).getStatus();
 
-        Set<Long> invalidWorkers = Set.of(999L);
-        PutOrderRequestDto requestDto = new PutOrderRequestDto( invalidWorkers,"COMPLETED");
+        Set<UUID> invalidWorkers = Set.of(UUID.randomUUID());
+        PutOrderRequestDto requestDto = new PutOrderRequestDto(invalidWorkers,"COMPLETED");
 
         when(orderRepository.findById(orderId)).thenReturn(Optional.of(spyOrder));
         when(orderStatusRepository.findById("COMPLETED")).thenReturn(Optional.of(status));
@@ -225,7 +232,7 @@ class OrderManagementServiceTest {
     @Test
     @DisplayName("findWorkerOrder: Возврат пустого списка, если заказов нет")
     void findWorkerOrder_Empty() {
-        UserPrincipal principal = new UserPrincipal(200L, "worker@test.com", 1L, List.of());
+        UserPrincipal principal = new UserPrincipal(workerId, "worker@test.com", 1L, List.of());
         when(orderRepository.findAllByWorkerId(principal.userId())).thenReturn(Collections.emptyList());
 
         List<ResponseOrderDto> result = orderManagementService.findWorkerOrder(principal);
@@ -237,13 +244,12 @@ class OrderManagementServiceTest {
     @Test
     @DisplayName("findUserOrder: Успешный возврат сводки заказов клиента")
     void findUserOrder_Success() {
-        Long clientId = 100L;
-        Long vehicleId = 300L;
+        Long orderId = 1L;
         Long stationId = 10L;
 
         UserPrincipal principal = new UserPrincipal(clientId, "client@test.com", null, List.of());
 
-        Order order = createOrder(1L);
+        Order order = createOrder(orderId);
         order.setVehicleId(vehicleId);
         order.setStationId(stationId);
 
@@ -277,22 +283,21 @@ class OrderManagementServiceTest {
         return status;
     }
 
-
     private Order createOrder(Long id) {
         Order order = new Order();
         order.setId(id);
-        order.setClientId(100L);
-        order.setWorkerIds(new HashSet<>(Set.of(200L)));
-        order.setVehicleId(300L);
+        order.setClientId(clientId);
+        order.setWorkerIds(new HashSet<>(Set.of(workerId)));
+        order.setVehicleId(vehicleId); // Снова Long
         order.setOrderItems(new ArrayList<>());
         return order;
     }
 
     private OrderInfoFromUserServiceDto createUserInfo() {
         return new OrderInfoFromUserServiceDto(
-                new UserDto(100L, "client@test.com", "Client Name"),
-                List.of(new UserDto(200L, "worker@test.com", "Worker Name")),
-                new VehicleDto(300L, "BMW", "X5", "7777-7")
+                new UserDto(clientId, "client@test.com", "Client Name"),
+                List.of(new UserDto(workerId, "worker@test.com", "Worker Name")),
+                new VehicleDto(vehicleId, "BMW", "X5", "7777-7") // Снова Long
         );
     }
 

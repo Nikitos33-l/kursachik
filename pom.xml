@@ -17,6 +17,7 @@
 
     <modules>
         <module>notification-service</module>
+        <module>security-service</module>
         <module>eureka-server</module>
         <module>gateway</module>
         <module>order-service</module>

@@ -17,6 +17,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
+import java.util.UUID; // Не забываем импорт
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -37,6 +38,8 @@ public class AuthServiceTest {
     @InjectMocks
     private AuthService authService;
 
+    private final UUID userId = UUID.randomUUID();
+
     @Test
     @DisplayName("Успешный логин")
     void login_Success() {
@@ -44,13 +47,13 @@ public class AuthServiceTest {
         Role role = new Role();
         role.setName("CLIENT");
 
-        User user = User.builder().id(1L).email("test@mail.com")
+        User user = User.builder().id(userId).email("test@mail.com")
                 .password("encoded_password").role(role).workplaceId(10L).build();
-
 
         when(userRepository.findByEmail(request.email())).thenReturn(user);
         when(passwordEncoder.matches(request.password(), user.getPassword())).thenReturn(true);
-        when(jwtService.createAccessToken(anyLong(), anyString(), anyString(), anyLong())).thenReturn("access");
+
+        when(jwtService.createAccessToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn("access");
         when(jwtService.createRefreshToken(anyString())).thenReturn("refresh");
 
         TokenPair result = authService.login(request);
@@ -58,7 +61,8 @@ public class AuthServiceTest {
         assertNotNull(result);
         assertEquals("access", result.accessToken());
         assertEquals("refresh", result.refreshToken());
-        verify(jwtService).createAccessToken(1L, "test@mail.com", "CLIENT", 10L);
+
+        verify(jwtService).createAccessToken(userId, "test@mail.com", "CLIENT", 10L);
     }
 
     @Test
@@ -90,6 +94,7 @@ public class AuthServiceTest {
         when(userRepository.findByEmail(request.email())).thenReturn(null);
         when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(clientRole));
         when(passwordEncoder.encode(request.password())).thenReturn("encoded_pass");
+
         when(jwtService.createAccessToken(any(), anyString(), anyString(), any())).thenReturn("access");
         when(jwtService.createRefreshToken(anyString())).thenReturn("refresh");
 

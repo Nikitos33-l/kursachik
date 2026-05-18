@@ -4,9 +4,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
+import java.util.UUID;
 
 public record UserPrincipal(
-        Long userId,
+        UUID userId,
         String email,
         Long stationId,
         Collection<? extends GrantedAuthority> authorities

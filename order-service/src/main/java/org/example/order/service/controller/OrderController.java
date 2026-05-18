@@ -13,6 +13,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/order")
@@ -61,7 +62,7 @@ public class OrderController {
     }
 
     @DeleteMapping("/internal/delete/by/userId/{id}")
-    public void deleteOrderByUser(@PathVariable Long id){
+    public void deleteOrderByUser(@PathVariable UUID id){
         orderService.deleteOrderByClient(id);
     }
 
