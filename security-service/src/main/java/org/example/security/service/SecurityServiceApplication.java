@@ -1,4 +1,4 @@
-package org.example.securityservice;
+package org.example.security.service;
 
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 import org.springframework.boot.SpringApplication;

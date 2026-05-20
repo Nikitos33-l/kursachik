@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@FeignClient(name = "userService")
+@FeignClient(name = "user-service")
 public interface UserServiceFeignClient {
 
     @GetMapping("api/user/internal/get/orderInfo")

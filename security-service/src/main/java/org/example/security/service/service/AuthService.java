@@ -1,15 +1,13 @@
-package org.example.user.service.service;
+package org.example.security.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.user.service.dto.request.LoginRequest;
-import org.example.user.service.dto.request.RegisterRequest;
-import org.example.user.service.dto.response.TokenPair;
-import org.example.user.service.entity.User;
-import org.example.user.service.repository.RoleRepository;
-import org.example.user.service.repository.UserRepository;
-import org.springframework.cache.annotation.CacheEvict;
+import org.example.security.service.dto.request.LoginRequest;
+import org.example.security.service.dto.request.RegisterRequest;
+import org.example.security.service.dto.response.TokenPair;
+import org.example.security.service.entity.User;
+import org.example.security.service.repository.RoleRepository;
+import org.example.security.service.repository.UserRepository;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -28,7 +26,7 @@ public class AuthService {
 
     @Transactional
     public TokenPair login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.email());
+        User user = userRepository.findByEmail(request.email()).orElseThrow(()->new BadCredentialsException("Неверный email или пароль"));
 
         if (user == null || !passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BadCredentialsException("Неверный email или пароль");
@@ -41,7 +39,7 @@ public class AuthService {
 
     @Transactional
     public TokenPair register(RegisterRequest request) {
-        if (userRepository.findByEmail(request.email()) != null) {
+        if (userRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalStateException("Пользователь с таким email уже существует");
         }
         User user = new User();

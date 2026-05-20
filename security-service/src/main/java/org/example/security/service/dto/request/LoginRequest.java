@@ -1,10 +1,9 @@
-package org.example.user.service.dto.request;
+package org.example.security.service.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record RegisterRequest(
-        @NotBlank String name,
+public record LoginRequest(
         @Email @NotBlank String email,
         @NotBlank String password
 ) {}

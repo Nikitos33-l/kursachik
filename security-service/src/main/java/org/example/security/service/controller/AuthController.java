@@ -1,12 +1,12 @@
-package org.example.user.service.controller;
+package org.example.security.service.controller;
 
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.user.service.dto.request.LoginRequest;
-import org.example.user.service.dto.request.RegisterRequest;
-import org.example.user.service.dto.response.TokenPair;
-import org.example.user.service.service.AuthService;
+import org.example.security.service.dto.request.LoginRequest;
+import org.example.security.service.dto.request.RegisterRequest;
+import org.example.security.service.dto.response.TokenPair;
+import org.example.security.service.service.AuthService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
