@@ -43,7 +43,6 @@ public class AuthService {
             throw new IllegalStateException("Пользователь с таким email уже существует");
         }
         User user = new User();
-        user.setName(request.name());
         user.setEmail(request.email());
         user.setPassword(passwordEncoder.encode(request.password()));
 

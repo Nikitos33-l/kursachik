@@ -22,7 +22,7 @@ import java.util.*;
 public class JwtService {
 
     private final Key signingKey;
-    private final TokenBlackListService blacklistService;
+    private final BlackListService blacklistService;
     private final UserRepository userRepository;
 
     private static final long ACCESS_TOKEN_EXPIRATION = 1000 * 60 * 15;
@@ -30,7 +30,7 @@ public class JwtService {
 
     public JwtService(
             @Value("${jwt.secret}") String secret,
-            TokenBlackListService blacklistService,
+            BlackListService blacklistService,
             UserRepository userRepository
     ) {
         byte[] keyBytes = Decoders.BASE64.decode(secret);
@@ -69,12 +69,14 @@ public class JwtService {
         try {
             Claims claims = extractAllClaims(token);
 
-            String email = claims.getSubject();
-            String role = claims.get("role", String.class);
-
             String userIdStr = claims.get("userId", String.class);
+            if(blacklistService.isUserBlacklisted(userIdStr)){
+                return TokenValidationResultDto.invalid();
+            }
             UUID userId = userIdStr != null ? UUID.fromString(userIdStr) : null;
 
+            String email = claims.getSubject();
+            String role = claims.get("role", String.class);
             Long stationId = claims.get("stationId", Long.class);
 
             return new TokenValidationResultDto(true, userId, email, List.of(role), stationId);
@@ -90,7 +92,7 @@ public class JwtService {
             String jti = claims.getId();
             String email = claims.getSubject();
 
-            if (blacklistService.isRevoked(jti)) {
+            if (blacklistService.isTokenRevoked(jti)) {
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token has been revoked. Possible theft detected!");
             }
 

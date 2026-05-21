@@ -12,7 +12,7 @@ public class UserEventRabbitConsumer {
     private final OrderManagementService orderService;
 
     @RabbitListener(queues = "${user.delete.queue}")
-    public void listenUserDeleteEvent(@Payload UUID userId){
+    public void handleUserDelete(@Payload UUID userId){
         orderService.deleteOrderByClient(userId);
     }
 }
