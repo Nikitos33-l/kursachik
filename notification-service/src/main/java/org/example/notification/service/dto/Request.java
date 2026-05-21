@@ -1,4 +1,4 @@
-package org.example.notificationservice.dto;
+package org.example.notification.service.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;

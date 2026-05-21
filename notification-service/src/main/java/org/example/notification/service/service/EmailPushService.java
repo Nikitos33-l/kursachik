@@ -1,8 +1,8 @@
-package org.example.notificationservice.Service;
+package org.example.notification.service.service;
 
 import lombok.RequiredArgsConstructor;
-import org.example.notificationservice.Exception.EmailSenderException;
-import org.example.notificationservice.dto.Request;
+import org.example.notification.service.exception.EmailSenderException;
+import org.example.notification.service.dto.Request;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;

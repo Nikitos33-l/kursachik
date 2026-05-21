@@ -1,10 +1,8 @@
-package org.example.notificationservice.dto;
+package org.example.notification.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-
-import java.util.Locale;
 
 @Getter
 @AllArgsConstructor

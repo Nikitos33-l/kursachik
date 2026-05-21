@@ -61,11 +61,6 @@ public class OrderController {
         return orderService.findWorkerOrder(userPrincipal);
     }
 
-    @DeleteMapping("/internal/delete/by/userId/{id}")
-    public void deleteOrderByUser(@PathVariable UUID id){
-        orderService.deleteOrderByClient(id);
-    }
-
     @DeleteMapping("/internal/delete/by/stationId/{id}")
     public void deleteByStation(@PathVariable Long id){
         orderService.deleteByOrder(id);

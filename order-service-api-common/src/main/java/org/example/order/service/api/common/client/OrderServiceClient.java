@@ -8,8 +8,6 @@ import java.util.UUID;
 
 @FeignClient(name = "order-service")
 public interface OrderServiceClient {
-    @DeleteMapping("/api/order/internal/delete/by/userId/{id}")
-    void deleteByUser(@PathVariable UUID id);
 
     @DeleteMapping("/api/order/internal/delete/by/stationId/{id}")
     void deleteByStation(@PathVariable Long id);

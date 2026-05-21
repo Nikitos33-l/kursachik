@@ -1,7 +1,9 @@
 package org.example.user.service.service;
 
-import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
+import org.example.user.contracts.UserCreatedEvent;
+import org.example.user.contracts.UserUpdateEvent;
+import org.example.user.service.publisher.UserEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.order.service.api.common.client.OrderServiceClient;
@@ -24,6 +26,8 @@ import org.example.user.service.repository.UserRepository;
 import org.example.user.service.repository.VehicleRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -39,6 +43,7 @@ public class UserService {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final CarService carService;
+    private final UserEventPublisher userEventPublisher;
 
     @Transactional(readOnly = true)
     public List<ResponseUserDto> getAll(Long stationId) {
@@ -51,26 +56,9 @@ public class UserService {
                 findAllByRole_NameAndWorkplaceId("WORKER", stationId));
     }
 
-    @Transactional
-    public void deleteUser(UUID id) {
-        try {
-            orderServiceClient.deleteByUser(id);
-        } catch (FeignException e) {
-            throw new RuntimeException("Не удалось удалить связанные заказы. Попробуйте позже.");
-        }
-        userRepository.deleteById(id);
-    }
-
     @Transactional(readOnly = true)
     public UserShortResponse getInfo(UUID id) {
         return userMapper.toShortResponse(getById(id));
-    }
-
-    @Transactional
-    public void updateUser(UUID id, RequestUpdateUserDto userDto) {
-        User user = getById(id);
-        user.setEmail(userDto.email().trim());
-        user.setName(userDto.name().trim());
     }
 
     @Transactional(readOnly = true)
@@ -129,11 +117,6 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("Автомобиля с таким id не существует"));
     }
 
-    private User getById(UUID id) {
-        return userRepository.
-                findById(id).orElseThrow(() -> new EntityNotFoundException("Нету пользователя с таким id"));
-    }
-
     @Transactional(readOnly = true)
     public ValidationResponse validateWorkers(Set<UUID> ids) {
         List<User> workers = userRepository.findAllByIdIn(ids);
@@ -147,6 +130,30 @@ public class UserService {
 
         return new ValidationResponse(true, emails);
     }
+
+    @Transactional
+    public void deleteUser(UUID id) {
+        userRepository.deleteById(id);
+        runAfterCommit(()->userEventPublisher.publishUserDeletedEvents(id));
+    }
+
+    @Transactional
+    public void updateUser(UUID id, RequestUpdateUserDto userDto) {
+        User user = getById(id);
+        if(!user.getEmail().equals(userDto.email())){
+            checkUserExists(userDto.email());
+            UserUpdateEvent message = new UserUpdateEvent(id, userDto.email().trim());
+            runAfterCommit(()->userEventPublisher.publishUserUpdateEvents(message));
+        }
+        user.setEmail(userDto.email().trim());
+        user.setName(userDto.name().trim());
+    }
+
+    private User getById(UUID id) {
+        return userRepository.
+                findById(id).orElseThrow(() -> new EntityNotFoundException("Нету пользователя с таким id"));
+    }
+
 
     @Transactional
     public void addUser(RequestAddUserDto userDto, UserPrincipal userPrincipal) {
@@ -163,7 +170,12 @@ public class UserService {
                 .workplaceId(stationId)
                 .build();
 
+        UserCreatedEvent message= new UserCreatedEvent(user.getId()
+                ,user.getEmail(),user.getPassword(),user.getRole().getName(),user.getWorkplaceId());
+
         userRepository.save(user);
+
+        runAfterCommit(()->userEventPublisher.publishUserCreatedEvents(message));
     }
 
     private void checkUserExists(String email) {
@@ -192,5 +204,14 @@ public class UserService {
     @Transactional
     public void deleteByWorkplace(Long id) {
         userRepository.deleteAllByWorkplaceId(id);
+    }
+
+    public static void runAfterCommit(Runnable runnable) {
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                runnable.run();
+            }
+        });
     }
 }

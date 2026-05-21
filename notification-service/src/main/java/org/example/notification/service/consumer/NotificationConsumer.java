@@ -1,9 +1,9 @@
-package org.example.notificationservice.Consumer;
+package org.example.notification.service.consumer;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.example.notificationservice.Service.EmailPushService;
-import org.example.notificationservice.dto.Request;
+import org.example.notification.service.service.EmailPushService;
+import org.example.notification.service.dto.Request;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 
