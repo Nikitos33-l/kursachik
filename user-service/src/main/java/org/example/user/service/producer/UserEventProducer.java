@@ -1,4 +1,4 @@
-package org.example.user.service.publisher;
+package org.example.user.service.producer;
 
 import org.example.user.contracts.UserCreatedEvent;
 import org.example.user.contracts.UserUpdateEvent;
@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 @Component
-public class UserEventPublisher {
+public class UserEventProducer {
 
     private final RabbitTemplate rabbitTemplate;
     private final String exchange;
@@ -17,7 +17,7 @@ public class UserEventPublisher {
     private final String addRoutingKey;
     private final String updateRoutingKey;
 
-    public UserEventPublisher(RabbitTemplate rabbitTemplate, @Value("${user.exchange.name}") String exchange, @Value("${user.delete.routing.key}") String deleteRoutingKey, @Value("${user.create.routing.key}") String addRoutingKey,@Value("${user.update.routing.key}") String updateRoutingKey) {
+    public UserEventProducer(RabbitTemplate rabbitTemplate, @Value("${user.exchange.name}") String exchange, @Value("${user.delete.routing.key}") String deleteRoutingKey, @Value("${user.create.routing.key}") String addRoutingKey, @Value("${user.update.routing.key}") String updateRoutingKey) {
         this.rabbitTemplate = rabbitTemplate;
         this.exchange = exchange;
         this.deleteRoutingKey = deleteRoutingKey;

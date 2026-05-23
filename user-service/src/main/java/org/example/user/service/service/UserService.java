@@ -2,11 +2,11 @@ package org.example.user.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.example.user.contracts.UserCreatedEvent;
+import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.contracts.UserUpdateEvent;
-import org.example.user.service.publisher.UserEventPublisher;
+import org.example.user.service.producer.UserEventProducer;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.example.order.service.api.common.client.OrderServiceClient;
 import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
@@ -37,13 +37,12 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserMapper userMapper;
     private final UserRepository userRepository;
-    private final OrderServiceClient orderServiceClient;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final CarService carService;
-    private final UserEventPublisher userEventPublisher;
+    private final UserEventProducer userEventProducer;
 
     @Transactional(readOnly = true)
     public List<ResponseUserDto> getAll(Long stationId) {
@@ -134,7 +133,7 @@ public class UserService {
     @Transactional
     public void deleteUser(UUID id) {
         userRepository.deleteById(id);
-        runAfterCommit(()->userEventPublisher.publishUserDeletedEvents(id));
+        runAfterCommit(()-> userEventProducer.publishUserDeletedEvents(id));
     }
 
     @Transactional
@@ -143,7 +142,7 @@ public class UserService {
         if(!user.getEmail().equals(userDto.email())){
             checkUserExists(userDto.email());
             UserUpdateEvent message = new UserUpdateEvent(id, userDto.email().trim());
-            runAfterCommit(()->userEventPublisher.publishUserUpdateEvents(message));
+            runAfterCommit(()-> userEventProducer.publishUserUpdateEvents(message));
         }
         user.setEmail(userDto.email().trim());
         user.setName(userDto.name().trim());
@@ -175,7 +174,22 @@ public class UserService {
 
         userRepository.save(user);
 
-        runAfterCommit(()->userEventPublisher.publishUserCreatedEvents(message));
+        runAfterCommit(()-> userEventProducer.publishUserCreatedEvents(message));
+    }
+
+    @Transactional
+    public void handleUserRegister(UserRegisterEvent event){
+        checkUserExists(event.email());
+        Role role = getRoleByName(event.role());
+
+        User user = User.builder().id(event.id())
+                .name(event.name())
+                .email(event.email())
+                .role(role)
+                .password(event.password())
+                .workplaceId(event.workplaceId()).build();
+
+        userRepository.save(user);
     }
 
     private void checkUserExists(String email) {
@@ -206,7 +220,7 @@ public class UserService {
         userRepository.deleteAllByWorkplaceId(id);
     }
 
-    public static void runAfterCommit(Runnable runnable) {
+    private static void runAfterCommit(Runnable runnable) {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
