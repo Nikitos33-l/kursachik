@@ -6,7 +6,9 @@ import org.example.notification.service.service.EmailPushService;
 import org.example.notification.service.dto.Request;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
+import org.springframework.stereotype.Component;
 
+@Component
 @RequiredArgsConstructor
 public class NotificationConsumer {
     EmailPushService service;

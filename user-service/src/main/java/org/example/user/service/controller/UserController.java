@@ -77,8 +77,4 @@ public class UserController {
         return userService.validateWorkers(ids);
     }
 
-    @DeleteMapping("/internal/delete/by/workplace/{id}")
-    public void deleteWorkersByWorkplace(@PathVariable Long id){
-        userService.deleteByWorkplace(id);
-    }
 }

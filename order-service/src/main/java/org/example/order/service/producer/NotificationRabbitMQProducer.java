@@ -13,7 +13,7 @@ public class NotificationRabbitMQProducer {
     private final String exchange;
     private final String routingKey;
 
-    public NotificationRabbitMQProducer(RabbitTemplate template, @Value("${notification.exchange}") String exchange, @Value("${notification.routing-key}") String routingKey) {
+    public NotificationRabbitMQProducer(RabbitTemplate template, @Value("${notification.exchange}") String exchange, @Value("${notification.routing.key}") String routingKey) {
         this.template = template;
         this.exchange = exchange;
         this.routingKey = routingKey;

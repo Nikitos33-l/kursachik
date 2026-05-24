@@ -4,6 +4,9 @@ import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
 import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.rabbit.retry.MessageRecoverer;
+import org.springframework.amqp.rabbit.retry.RepublishMessageRecoverer;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,12 +19,36 @@ public class RabbitMqConfig {
     private final String userEventsExchange;
     private final String userDeleteQueue;
     private final String userDeleteRoutingKey;
+    private final String stationEventExchange;
+    private final String stationDeleteQueue;
+    private final String stationDeleteRoutingKey;
 
-    public RabbitMqConfig(@Value(value = "${notification.exchange}") String exchange, @Value(value = "${user.event.exchange}") String userEventsExchange, @Value(value = "${user.delete.queue}") String userDeleteQueue,@Value(value = "${user.delete.routing.key}") String userDeleteRoutingKey) {
+    private final String deadLetterExchange;
+    private final String userDeleteDlq;
+    private final String stationDeleteDlq;
+
+    public RabbitMqConfig
+            (@Value("${notification.exchange}") String exchange,
+             @Value("${user.event.exchange}") String userEventsExchange,
+             @Value("${user.delete.queue}") String userDeleteQueue,
+             @Value("${user.delete.routing.key}") String userDeleteRoutingKey,
+             @Value("${station.exchange.name}") String stationEventExchange,
+             @Value("${station.delete.queue}") String stationDeleteQueue,
+             @Value("${station.delete.routing.key}") String stationDeleteRoutingKey,
+             @Value("${dead.letter.exchange.name}") String deadLetterExchange,
+             @Value("${order.dlq.user-delete}") String userDeleteDlq,
+             @Value("${order.dlq.station-delete}") String stationDeleteDlq) {
+
         this.notificationExchange = exchange;
         this.userEventsExchange = userEventsExchange;
         this.userDeleteQueue = userDeleteQueue;
         this.userDeleteRoutingKey = userDeleteRoutingKey;
+        this.stationEventExchange = stationEventExchange;
+        this.stationDeleteQueue = stationDeleteQueue;
+        this.stationDeleteRoutingKey = stationDeleteRoutingKey;
+        this.deadLetterExchange = deadLetterExchange;
+        this.userDeleteDlq = userDeleteDlq;
+        this.stationDeleteDlq = stationDeleteDlq;
     }
 
     @Bean
@@ -35,16 +62,62 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    TopicExchange stationEventExchange(){
+        return new TopicExchange(stationEventExchange,true,false);
+    }
+
+    @Bean
+    TopicExchange deadLetterExchange(){
+        return new TopicExchange(deadLetterExchange, true, false);
+    }
+
+    @Bean
+    Queue stationDeleteQueue(){
+        return new Queue(stationDeleteQueue);
+    }
+
+    @Bean
     Queue userDeleteQueue(){
         return new Queue(userDeleteQueue);
+    }
+
+    @Bean
+    Queue userDeleteDlq(){
+        return new Queue(userDeleteDlq);
+    }
+
+    @Bean
+    Queue stationDeleteDlq(){
+        return new Queue(stationDeleteDlq);
     }
 
     @Bean
     Binding userDeleteBinding(){
         return BindingBuilder.bind(userDeleteQueue()).to(userEventExchange()).with(userDeleteRoutingKey);
     }
+
+    @Bean
+    Binding stationDeleteBinding(){
+        return BindingBuilder.bind(stationDeleteQueue()).to(stationEventExchange()).with(stationDeleteRoutingKey);
+    }
+
+    @Bean
+    Binding userDeleteDlqBinding(){
+        return BindingBuilder.bind(userDeleteDlq()).to(deadLetterExchange()).with(userDeleteRoutingKey);
+    }
+
+    @Bean
+    Binding stationDeleteDlqBinding(){
+        return BindingBuilder.bind(stationDeleteDlq()).to(deadLetterExchange()).with(stationDeleteRoutingKey);
+    }
+
     @Bean
     MessageConverter converter(){
         return new Jackson2JsonMessageConverter();
+    }
+
+    @Bean
+    public MessageRecoverer messageRecoverer(RabbitTemplate template){
+        return new RepublishMessageRecoverer(template, deadLetterExchange);
     }
 }

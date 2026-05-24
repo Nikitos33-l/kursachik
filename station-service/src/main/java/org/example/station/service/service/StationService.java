@@ -11,10 +11,13 @@ import org.example.station.service.dto.request.RequestStationDto;
 import org.example.station.service.dto.response.ResponseStationDto;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.StationMapper;
+import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.StationRepository;
 import org.example.user.api.client.UserServiceFeignClient;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -27,8 +30,7 @@ public class StationService {
     private final GeocoderService geocoderService;
     private final StationMapper stationMapper;
     private final StationRepository stationRepository;
-    private final OrderServiceClient orderServiceClient;
-    private final UserServiceFeignClient userServiceClient;
+    private final StationEventProducer stationEventProducer;
 
     @Transactional
     public void addStation(RequestStationDto requestStationDto) {
@@ -69,8 +71,7 @@ public class StationService {
     public void delete(Long id) {
         try {
             stationRepository.deleteById(id);
-            orderServiceClient.deleteByStation(id);
-            userServiceClient.deleteWorkersByWorkplace(id);
+            runAfterCommit(()->stationEventProducer.publishUserDeletedEvent(id));
         }
         catch (FeignException e){
             throw new RuntimeException("Не удалось удалить связанные сущности");
@@ -92,6 +93,15 @@ public class StationService {
     private Set<Long> getStationIds(List<RequestOrderMappingStationDto> dtoList){
         return dtoList.stream().
                 map(RequestOrderMappingStationDto::stationId).collect(Collectors.toSet());
+    }
+
+    private static void runAfterCommit(Runnable runnable){
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                runnable.run();
+            }
+        });
     }
 
 }

@@ -6,15 +6,14 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
-import java.util.UUID;
-
 @Component
 @RequiredArgsConstructor
-public class UserEventRabbitConsumer {
-    private final OrderManagementService orderService;
+public class StationEventConsumer {
+    private final OrderManagementService service;
 
-    @RabbitListener(queues = "${user.delete.queue}")
-    public void handleUserDelete(@Payload UUID userId){
-        orderService.deleteOrderByClient(userId);
+    @RabbitListener(queues = "${station.delete.queue}")
+    public void handleStationDelete(@Payload Long stationId){
+        service.deleteByStation(stationId);
     }
+
 }

@@ -209,9 +209,8 @@ public class OrderManagementService {
         return new RequestOrderMappingStationDto(order.getId(), order.getStationId());
     }
 
-
     @Transactional
-    public void deleteByOrder(Long id) {
+    public void deleteByStation(Long id) {
         orderRepository.deleteAllByStationId(id);
     }
 }

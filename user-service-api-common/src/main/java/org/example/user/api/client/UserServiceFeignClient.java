@@ -32,8 +32,4 @@ public interface UserServiceFeignClient {
     @PostMapping("/api/cars/internal/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);
 
-    @DeleteMapping("/api/user/internal/delete/by/workplace/{id}")
-    void deleteWorkersByWorkplace(@PathVariable Long id);
-
-
 }
