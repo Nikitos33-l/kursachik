@@ -11,6 +11,7 @@ import org.example.station.service.dto.response.ResponseServiceDto;
 import org.example.station.service.entity.Service;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.ServiceMapper;
+import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.ServiceRepository;
 import org.example.station.service.repository.StationRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ public class ServiceManagementService {
     private final ServiceMapper serviceMapper;
     private final StationService stationService;
     private final StationRepository stationRepository;
+    private final StationEventProducer stationEventProducer;
 
     @Transactional(readOnly = true)
     public List<ResponseServiceDto> findAll(Long stationId, UserPrincipal userPrincipal) {
@@ -52,6 +54,8 @@ public class ServiceManagementService {
         Service service = getServiceById(id);
         service.setName(serviceDto.name());
         service.setPrice(serviceDto.price());
+
+        stationEventProducer.sendStationServicesUpdatedEvent(service.getStation().getId());
     }
 
     private Service getServiceById(Long id){
@@ -61,7 +65,12 @@ public class ServiceManagementService {
 
     @Transactional
     public void delete(Long id) {
-        serviceRepository.deleteById(id);
+        Service service = getServiceById(id);
+        Long stationId = service.getStation().getId();
+
+        serviceRepository.delete(service);
+
+        stationEventProducer.sendStationServicesUpdatedEvent(stationId);
     }
 
     @Transactional

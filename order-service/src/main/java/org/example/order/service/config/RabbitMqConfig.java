@@ -26,6 +26,9 @@ public class RabbitMqConfig {
     private final String deadLetterExchange;
     private final String userDeleteDlq;
     private final String stationDeleteDlq;
+    private final String stationServicesUpdatedQueue;
+    private final String stationServicesUpdatedRoutingKey;
+    private final String stationServicesUpdatedDlq;
 
     public RabbitMqConfig
             (@Value("${notification.exchange}") String exchange,
@@ -37,7 +40,10 @@ public class RabbitMqConfig {
              @Value("${station.delete.routing.key}") String stationDeleteRoutingKey,
              @Value("${dead.letter.exchange.name}") String deadLetterExchange,
              @Value("${order.dlq.user-delete}") String userDeleteDlq,
-             @Value("${order.dlq.station-delete}") String stationDeleteDlq) {
+             @Value("${order.dlq.station-delete}") String stationDeleteDlq,
+             @Value("${station.services.updated.queue}") String stationServicesUpdatedQueue,
+             @Value("${station.services.updated.routing.key}") String stationServicesUpdatedRoutingKey,
+             @Value("${order.dlq.station-services-updated}") String stationServicesUpdatedDlq) {
 
         this.notificationExchange = exchange;
         this.userEventsExchange = userEventsExchange;
@@ -49,6 +55,9 @@ public class RabbitMqConfig {
         this.deadLetterExchange = deadLetterExchange;
         this.userDeleteDlq = userDeleteDlq;
         this.stationDeleteDlq = stationDeleteDlq;
+        this.stationServicesUpdatedQueue = stationServicesUpdatedQueue;
+        this.stationServicesUpdatedRoutingKey = stationServicesUpdatedRoutingKey;
+        this.stationServicesUpdatedDlq = stationServicesUpdatedDlq;
     }
 
     @Bean
@@ -109,6 +118,30 @@ public class RabbitMqConfig {
     @Bean
     Binding stationDeleteDlqBinding(){
         return BindingBuilder.bind(stationDeleteDlq()).to(deadLetterExchange()).with(stationDeleteRoutingKey);
+    }
+
+    @Bean
+    Queue stationServicesUpdatedQueue(){
+        return new Queue(stationServicesUpdatedQueue);
+    }
+
+    @Bean
+    Queue stationServicesUpdatedDlq(){
+        return new Queue(stationServicesUpdatedDlq);
+    }
+
+    @Bean
+    Binding stationServicesUpdatedBinding(){
+        return BindingBuilder.bind(stationServicesUpdatedQueue())
+                .to(stationEventExchange())
+                .with(stationServicesUpdatedRoutingKey);
+    }
+
+    @Bean
+    Binding stationServicesUpdatedDlqBinding(){
+        return BindingBuilder.bind(stationServicesUpdatedDlq())
+                .to(deadLetterExchange())
+                .with(stationServicesUpdatedRoutingKey);
     }
 
     @Bean

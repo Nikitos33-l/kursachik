@@ -1,11 +1,25 @@
+version: '3.8'
+
 services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq-sto
     ports:
       - "5672:5672"
-
       - "15672:15672"
     environment:
       - RABBITMQ_DEFAULT_USER=guest
       - RABBITMQ_DEFAULT_PASS=guest
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: redis-cache
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --save 900 1 --save 300 10
+    restart: always
+
+volumes:
+  redis_data:

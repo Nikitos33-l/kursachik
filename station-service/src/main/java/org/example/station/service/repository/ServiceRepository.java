@@ -12,4 +12,5 @@ public interface ServiceRepository extends JpaRepository<Service,Long> {
     List<Service> findAllByStation_id(Long id);
 
     List<Service> findAllByIdIn(Collection<Long> ids);
+
 }

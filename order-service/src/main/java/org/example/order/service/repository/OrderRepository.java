@@ -22,8 +22,8 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
             " JOIN o.workerIds w WHERE w=:workerId")
     List<Order> findAllByWorkerId(@Param("workerId") UUID workerId);
 
-    void deleteAllByClientId(UUID clientId);
+    List<Order> deleteAllByClientId(UUID clientId);
 
-    void deleteAllByStationId(Long stationId);
+    List<Order> deleteAllByStationId(Long stationId);
 
 }

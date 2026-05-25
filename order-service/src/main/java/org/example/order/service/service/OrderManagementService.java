@@ -29,6 +29,10 @@ import org.example.user.api.requestDto.OrderVehicleMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.api.responceDto.VehicleDto;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,8 +48,11 @@ public class OrderManagementService {
     private final OrderRepository orderRepository;
     private final OrderStatusRepository orderStatusRepository;
     private final StationServiceClient stationServiceClient;
+    private final StationIntegrationWrapper stationIntegrationWrapper;
+    private final CacheManager cacheManager;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "order-service:order",key = "#id")
     public ResponseOrderDto find(Long id) {
         Order dbOrder = getOrderOrThrow(id);
         OrderInfoFromUserServiceDto response = userServiceClient.getOrderInfo(buildUserRequest(dbOrder));
@@ -63,10 +70,11 @@ public class OrderManagementService {
         CarRequestDto vehicleRequest = new CarRequestDto(vehicle.make(), vehicle.model(), vehicle.number(), userPrincipal.userId());
         VehicleDto vehicleResponse = userServiceClient.getOrCreateCar(vehicleRequest);
 
-        StationServicesResponse stationResponse = stationServiceClient.validateStationAndGetServices(
+        StationServicesResponse stationResponse = stationIntegrationWrapper.getValidatedServices(
                 requestOrderDto.stationId(),
                 requestOrderDto.serviceId()
         );
+
         if (!stationResponse.stationExists()) {
             throw new EntityNotFoundException("Станция не найдена");
         }
@@ -96,6 +104,7 @@ public class OrderManagementService {
     }
 
     @Transactional
+    @CacheEvict(value = "order-service:order",key = "#id")
     public void updateStatus(Long id, RequestOrderStatusDto status) {
         Order dbOrder = getOrderOrThrow(id);
         OrderStatus dbStatus = getStatusOrThrow(status.id());
@@ -104,6 +113,7 @@ public class OrderManagementService {
     }
 
     @Transactional
+    @CacheEvict(value = "order-service:order",key = "#orderId")
     public void updateOrder(PutOrderRequestDto requestDto, Long orderId) {
         Order order = getOrderOrThrow(orderId);
 
@@ -172,11 +182,6 @@ public class OrderManagementService {
         return new OrderUserMappingRequest(order.getId(),order.getClientId(),order.getWorkerIds(),order.getVehicleId());
     }
 
-    @Transactional
-    public void deleteOrderByClient(UUID userId) {
-        orderRepository.deleteAllByClientId(userId);
-    }
-
     @Transactional(readOnly = true)
     public List<ResponseOrderSummaryDto> findUserOrder(UserPrincipal userPrincipal) {
         List<Order> orders = orderRepository.findAllByClientId(userPrincipal.userId());
@@ -211,6 +216,26 @@ public class OrderManagementService {
 
     @Transactional
     public void deleteByStation(Long id) {
-        orderRepository.deleteAllByStationId(id);
+        List<Order> orders = orderRepository.deleteAllByStationId(id);
+        clearOrderCache(orders);
     }
+
+    @Transactional
+    public void deleteOrderByClient(UUID userId) {
+        List<Order> orders = orderRepository.deleteAllByClientId(userId);
+        clearOrderCache(orders);
+    }
+
+    private void clearOrderCache(List<Order> orders){
+        if (orders == null || orders.isEmpty()) {
+            return;
+        }
+        Cache cache = cacheManager.getCache("order-service:order");
+
+        if(cache!=null) {
+            orders.forEach(o-> cache.evict(o.getId()));
+        }
+
+    }
+
 }
