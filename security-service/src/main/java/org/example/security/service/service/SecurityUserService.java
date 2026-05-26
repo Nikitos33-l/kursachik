@@ -31,6 +31,7 @@ public class SecurityUserService {
     public void updateUser(UserUpdateEvent event){
        User user = userRepository.findById(event.id()).orElseThrow(()-> new EntityNotFoundException("Пользователь с таким id не был найден"));
        user.setEmail(event.email());
+       blackListService.blacklistUser(event.id().toString());
     }
 
     @Transactional

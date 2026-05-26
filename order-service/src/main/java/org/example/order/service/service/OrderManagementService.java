@@ -31,6 +31,7 @@ import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.api.responceDto.VehicleDto;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -38,8 +39,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 
+import static org.example.order.service.constant.CacheNames.*;
+
 @Service
 @RequiredArgsConstructor
+
 public class OrderManagementService {
 
     private final OrderMapper orderMapper;
@@ -52,7 +56,7 @@ public class OrderManagementService {
     private final CacheManager cacheManager;
 
     @Transactional(readOnly = true)
-    @Cacheable(value = "order-service:order",key = "#id")
+    @Cacheable(value = ORDER_CACHE,key = "#id")
     public ResponseOrderDto find(Long id) {
         Order dbOrder = getOrderOrThrow(id);
         OrderInfoFromUserServiceDto response = userServiceClient.getOrderInfo(buildUserRequest(dbOrder));
@@ -104,7 +108,7 @@ public class OrderManagementService {
     }
 
     @Transactional
-    @CacheEvict(value = "order-service:order",key = "#id")
+    @CacheEvict(value = ORDER_CACHE,key = "#id")
     public void updateStatus(Long id, RequestOrderStatusDto status) {
         Order dbOrder = getOrderOrThrow(id);
         OrderStatus dbStatus = getStatusOrThrow(status.id());
@@ -113,7 +117,7 @@ public class OrderManagementService {
     }
 
     @Transactional
-    @CacheEvict(value = "order-service:order",key = "#orderId")
+    @CacheEvict(value = ORDER_CACHE,key = "#orderId")
     public void updateOrder(PutOrderRequestDto requestDto, Long orderId) {
         Order order = getOrderOrThrow(orderId);
 
@@ -230,7 +234,7 @@ public class OrderManagementService {
         if (orders == null || orders.isEmpty()) {
             return;
         }
-        Cache cache = cacheManager.getCache("order-service:order");
+        Cache cache = cacheManager.getCache(ORDER_CACHE);
 
         if(cache!=null) {
             orders.forEach(o-> cache.evict(o.getId()));

@@ -1,5 +1,6 @@
 package org.example.order.service.config;
 
+import org.example.order.service.constant.CacheNames;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -10,6 +11,8 @@ import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSeriali
 import org.springframework.data.redis.serializer.RedisSerializationContext;
 
 import java.time.Duration;
+
+import static org.example.order.service.constant.CacheNames.*;
 
 @Configuration
 @EnableCaching
@@ -27,7 +30,7 @@ public class RedisConfig {
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultCfg)
-                .withCacheConfiguration("order-service:station-validation", stationValidationCfg)
+                .withCacheConfiguration(STATION_VALIDATION_CACHE, stationValidationCfg)
                 .build();
     }
 }
