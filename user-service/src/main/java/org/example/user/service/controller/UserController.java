@@ -67,7 +67,7 @@ public class UserController {
         return userService.getInfoForOrder(request);
     }
 
-    @GetMapping("/internal/getAll/order")
+    @GetMapping("/internal/getAll/orderInfo")
     public Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request){
         return userService.getInfoForOrders(request);
     }

@@ -20,7 +20,7 @@ public interface UserServiceFeignClient {
     @GetMapping("api/user/internal/get/orderInfo")
     OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request);
 
-    @GetMapping("api/user/internal/getAll/order")
+    @GetMapping("api/user/internal/getAll/orderInfo")
     Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request);
 
     @GetMapping("api/cars/internal/getAll")

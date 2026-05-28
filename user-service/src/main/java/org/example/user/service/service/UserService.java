@@ -4,7 +4,13 @@ import jakarta.persistence.EntityNotFoundException;
 import org.example.user.contracts.UserCreatedEvent;
 import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.contracts.UserUpdateEvent;
+import org.example.user.service.constant.CacheNames;
 import org.example.user.service.producer.UserEventProducer;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.UserPrincipal;
@@ -43,13 +49,16 @@ public class UserService {
     private final VehicleMapper vehicleMapper;
     private final CarService carService;
     private final UserEventProducer userEventProducer;
+    private final CacheManager cacheManager;
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.USERS_CACHE,key = "#stationId")
     public List<ResponseUserDto> getAll(Long stationId) {
         return userMapper.toListResponseUserDto(userRepository.findAll(stationId));
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.WORKERS_CACHE,key = "#stationId")
     public List<UserShortResponse> getAllWorkers(Long stationId) {
         return userMapper.toListShortResponse(userRepository.
                 findAllByRole_NameAndWorkplaceId("WORKER", stationId));
@@ -132,13 +141,21 @@ public class UserService {
 
     @Transactional
     public void deleteUser(UUID id) {
-        userRepository.deleteById(id);
+        User user = getById(id);
+        Long stationId = user.getWorkplaceId();
+        String roleName = user.getRole().getName();
+
+        userRepository.delete(user);
+        evictStationCaches(stationId, roleName);
+
         runAfterCommit(()-> userEventProducer.publishUserDeletedEvents(id));
     }
 
     @Transactional
     public void updateUser(UUID id, RequestUpdateUserDto userDto) {
         User user = getById(id);
+        Long stationId = user.getWorkplaceId();
+        String roleName = user.getRole().getName();
         if(!user.getEmail().equals(userDto.email())){
             checkUserExists(userDto.email());
             UserUpdateEvent message = new UserUpdateEvent(id, userDto.email().trim());
@@ -146,6 +163,7 @@ public class UserService {
         }
         user.setEmail(userDto.email().trim());
         user.setName(userDto.name().trim());
+        evictStationCaches(stationId, roleName);
     }
 
     private User getById(UUID id) {
@@ -173,6 +191,8 @@ public class UserService {
                 ,user.getEmail(),user.getPassword(),user.getRole().getName(),user.getWorkplaceId());
 
         userRepository.save(user);
+
+        evictStationCaches(stationId,role.getName());
 
         runAfterCommit(()-> userEventProducer.publishUserCreatedEvents(message));
     }
@@ -216,6 +236,13 @@ public class UserService {
     }
 
     @Transactional
+    @Caching(
+            evict = {
+                    @CacheEvict(value = CacheNames.USERS_CACHE, key = "#id"),
+                    @CacheEvict(value = CacheNames.WORKERS_CACHE, key = "#id")
+            }
+
+    )
     public void deleteByWorkplace(Long id) {
         userRepository.deleteAllByWorkplaceId(id);
     }
@@ -228,4 +255,19 @@ public class UserService {
             }
         });
     }
+
+    private void evictStationCaches(Long stationId, String roleName) {
+        Cache usersCache = cacheManager.getCache(CacheNames.USERS_CACHE);
+        if (usersCache != null) {
+            usersCache.evict(stationId);
+        }
+
+        if ("WORKER".equals(roleName)) {
+            Cache workersCache = cacheManager.getCache(CacheNames.WORKERS_CACHE);
+            if (workersCache != null) {
+                workersCache.evict(stationId);
+            }
+        }
+    }
+
 }
