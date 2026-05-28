@@ -3,9 +3,9 @@ package org.example.station.service.service;
 import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.example.order.service.api.common.client.OrderServiceClient;
 import org.example.station.service.api.common.dto.request.RequestOrderMappingStationDto;
 import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
+import org.example.station.service.constants.CacheNames;
 import org.example.station.service.dto.AddressCoordinate;
 import org.example.station.service.dto.request.RequestStationDto;
 import org.example.station.service.dto.response.ResponseStationDto;
@@ -13,7 +13,8 @@ import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.StationMapper;
 import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.StationRepository;
-import org.example.user.api.client.UserServiceFeignClient;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -33,6 +34,7 @@ public class StationService {
     private final StationEventProducer stationEventProducer;
 
     @Transactional
+    @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
     public void addStation(RequestStationDto requestStationDto) {
         AddressCoordinate addressCoordinate = geocoderService.getCoordinate(requestStationDto.address());
         Station station = stationMapper.toEntity(requestStationDto,addressCoordinate);
@@ -40,17 +42,19 @@ public class StationService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = CacheNames.STATION_CACHE, key = "'all'")
     public List<ResponseStationDto> findAll() {
         return stationMapper.toDtoList(stationRepository.findAll());
     }
 
+
     @Transactional(readOnly = true)
     public ResponseStationDto findById(Long id) {
-        Station station = getStationById(id);
-        return stationMapper.toDto(station);
+        return stationMapper.toDto(getStationById(id));
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
     public void update(Long id,RequestStationDto stationDto) {
         Station updateStation = getStationById(id);
         if(!updateStation.getAddressText().equalsIgnoreCase(stationDto.address())){
@@ -68,6 +72,7 @@ public class StationService {
     }
 
     @Transactional
+    @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
     public void delete(Long id) {
         try {
             stationRepository.deleteById(id);

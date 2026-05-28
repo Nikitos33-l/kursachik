@@ -27,21 +27,16 @@ public class ServiceManagementService {
     private final StationService stationService;
     private final StationRepository stationRepository;
     private final StationEventProducer stationEventProducer;
+    private final ServiceCacheRepository serviceCacheRepository;
 
     @Transactional(readOnly = true)
     public List<ResponseServiceDto> findAll(Long stationId, UserPrincipal userPrincipal) {
-        if(userPrincipal.getAuthorities().stream()
-                .anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_USER")))
-        {
-            return getAll(stationId);
-        }
-        else {
-            return getAll(userPrincipal.stationId());
-        }
-    }
+        Long targetStationId = userPrincipal.getAuthorities().stream()
+                .anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_USER"))
+                ? stationId
+                : userPrincipal.stationId();
 
-    private List<ResponseServiceDto> getAll(Long stationId){
-        return serviceMapper.toDtoList(serviceRepository.findAllByStation_id(stationId));
+        return serviceCacheRepository.getServicesByStationId(targetStationId);
     }
 
     @Transactional(readOnly = true)
@@ -55,7 +50,10 @@ public class ServiceManagementService {
         service.setName(serviceDto.name());
         service.setPrice(serviceDto.price());
 
-        stationEventProducer.sendStationServicesUpdatedEvent(service.getStation().getId());
+        Long stationId = service.getStation().getId();
+
+        serviceCacheRepository.evictCache(stationId);
+        stationEventProducer.sendStationServicesUpdatedEvent(stationId);
     }
 
     private Service getServiceById(Long id){
@@ -70,6 +68,7 @@ public class ServiceManagementService {
 
         serviceRepository.delete(service);
 
+        serviceCacheRepository.evictCache(stationId);
         stationEventProducer.sendStationServicesUpdatedEvent(stationId);
     }
 
@@ -78,6 +77,8 @@ public class ServiceManagementService {
         Station station = stationService.getStationById(userPrincipal.stationId());
         Service service = serviceMapper.toEntity(serviceDto,station);
         serviceRepository.save(service);
+
+        serviceCacheRepository.evictCache(station.getId());
     }
 
     @Transactional(readOnly = true)
