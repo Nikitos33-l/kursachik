@@ -1,9 +1,9 @@
-package org.example.user.service.integration;
+package org.example.security.service.integration;
 
-import org.example.user.service.dto.request.LoginRequest;
-import org.example.user.service.dto.request.RegisterRequest;
-import org.example.user.service.entity.Role;
-import org.example.user.service.entity.User;
+import org.example.security.service.dto.request.LoginRequest;
+import org.example.security.service.dto.request.RegisterRequest;
+import org.example.security.service.entity.Role;
+import org.example.security.service.entity.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,9 +35,7 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(cookie().httpOnly("Refreshtoken", true))
                 .andExpect(cookie().path("Refreshtoken", "/api/token/refresh"));
 
-        User savedUser = userRepository.findByEmail("alex@mail.com");
-        assertThat(savedUser).isNotNull();
-        assertThat(savedUser.getName()).isEqualTo("Aleksey");
+        User savedUser = userRepository.findByEmail("alex@mail.com").orElseThrow();
         assertThat(savedUser.getRole().getName()).isEqualTo("CLIENT");
         assertThat(passwordEncoder.matches("strongPassword123", savedUser.getPassword())).isTrue();
     }
@@ -46,7 +44,7 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Ошибка 409 при регистрации, если email уже занят")
     void shouldReturnConflictWhenRegisteringExistingEmail() throws Exception {
         Role clientRole = createAndSaveRole("CLIENT");
-        createAndSaveAuthUser("OldUser", "duplicate@mail.com", "anyPass", clientRole);
+        createAndSaveAuthUser("duplicate@mail.com", "anyPass", clientRole);
 
         RegisterRequest duplicateRequest = new RegisterRequest("NewUser", "duplicate@mail.com", "password");
 
@@ -60,7 +58,7 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Успешная авторизация пользователя с получением токенов")
     void shouldLoginSuccessfullyWithCorrectCredentials() throws Exception {
         Role clientRole = createAndSaveRole("CLIENT");
-        createAndSaveAuthUser("Dmitry", "dima@mail.com", "correct_password", clientRole);
+        createAndSaveAuthUser("dima@mail.com", "correct_password", clientRole);
 
         LoginRequest loginRequest = new LoginRequest("dima@mail.com", "correct_password");
 
@@ -77,7 +75,7 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Ошибка 401 (BadCredentialsException) при неверном пароле")
     void shouldReturnUnauthorizedWithWrongPassword() throws Exception {
         Role clientRole = createAndSaveRole("CLIENT");
-        createAndSaveAuthUser("Dmitry", "dima@mail.com", "correct_password", clientRole);
+        createAndSaveAuthUser("dima@mail.com", "correct_password", clientRole);
 
         LoginRequest wrongLoginRequest = new LoginRequest("dima@mail.com", "wrong_password");
 
@@ -104,9 +102,8 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
         return roleRepository.save(role);
     }
 
-    private User createAndSaveAuthUser(String name, String email, String plainPassword, Role role) {
+    private User createAndSaveAuthUser(String email, String plainPassword, Role role) {
         User user = User.builder()
-                .name(name)
                 .email(email)
                 .password(passwordEncoder.encode(plainPassword))
                 .role(role)

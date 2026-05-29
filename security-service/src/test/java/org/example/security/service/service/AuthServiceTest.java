@@ -1,4 +1,4 @@
-package org.example.user.service.service;
+package org.example.security.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import org.example.user.service.dto.request.LoginRequest;

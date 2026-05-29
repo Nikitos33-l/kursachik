@@ -1,4 +1,4 @@
-package org.example.user.service.service;
+package org.example.security.service.service;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

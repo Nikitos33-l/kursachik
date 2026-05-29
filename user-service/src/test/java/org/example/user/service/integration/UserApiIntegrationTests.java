@@ -1,7 +1,7 @@
 package org.example.user.service.integration;
 
-import org.example.order.service.api.common.client.OrderServiceClient;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
+import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.entity.Role;
@@ -9,8 +9,10 @@ import org.example.user.service.entity.User;
 import org.example.user.service.entity.Vehicle;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Set;
@@ -18,15 +20,20 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.mockito.Mockito.doNothing;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserApiIntegrationTests extends BaseIntegrationTest {
 
-    @MockitoBean
-    OrderServiceClient orderServiceClient;
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Value("${user.queue.registration}")
+    private String registrationQueue;
+
+    @Value("${station.delete.queue}")
+    private String stationDeleteQueue;
 
     private final UUID authUserId = UUID.randomUUID();
 
@@ -56,7 +63,6 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Успешное удаление пользователя")
     void shouldDeleteUser() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Oleg");
-        doNothing().when(orderServiceClient).deleteByUser(savedUser.getId());
 
         mockMvc.perform(delete("/api/user/delete/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId)))
@@ -70,7 +76,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldAddUserBySuperAdmin() throws Exception {
         createAndSaveRole("ADMIN");
 
-        RequestAddUserDto dto = new RequestAddUserDto("Иван","ivan@gmail.com","pass","ADMIN",12L);
+        RequestAddUserDto dto = new RequestAddUserDto("Иван", "ivan@gmail.com", "pass", "ADMIN", 12L);
 
         mockMvc.perform(post("/api/user/add")
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, authUserId))
@@ -119,7 +125,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldReturnBadRequestOnInvalidUpdate() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Anna");
 
-        RequestUpdateUserDto invalidDto = new RequestUpdateUserDto("","");
+        RequestUpdateUserDto invalidDto = new RequestUpdateUserDto("", "");
 
         mockMvc.perform(put("/api/user/update/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
@@ -132,14 +138,14 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @DisplayName("Успешное получение только сотрудников (WORKER) конкретной станции")
     void shouldGetAllWorkersForStation() throws Exception {
         Role workerRole = createAndSaveRole("WORKER");
+        Role adminRole = createAndSaveRole("ADMIN");
 
-        // Здесь тоже добавил явную генерацию ID для обоих пользователей
         User worker = User.builder()
                 .id(UUID.randomUUID())
                 .email("worker@mail.com").name("Vasya").workplaceId(100L).role(workerRole).build();
         User admin = User.builder()
                 .id(UUID.randomUUID())
-                .email("admin@mail.com").name("Petr").workplaceId(100L).build();
+                .email("admin@mail.com").name("Petr").workplaceId(100L).role(adminRole).build();
 
         userRepository.saveAll(List.of(worker, admin));
 
@@ -149,6 +155,37 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].name").value("Vasya"));
+    }
+
+    @Test
+    @DisplayName("Успешное получение краткой информации о пользователе по его ID")
+    void shouldGetUserInfo() throws Exception {
+        User savedUser = createAndSaveTestUser(100L, "Ivan");
+
+        mockMvc.perform(get("/api/user/get/info/{id}", savedUser.getId())
+                        .headers(getSecurityHeaders("ROLE_ADMIN",100L,authUserId))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Ivan"))
+                .andExpect(jsonPath("$.id").value(savedUser.getId().toString()));
+    }
+
+    @Test
+    @DisplayName("Успешное обновление данных пользователя (валидный сценарий)")
+    void shouldUpdateUserSuccessfully() throws Exception {
+        User savedUser = createAndSaveTestUser(100L, "OldName");
+
+        RequestUpdateUserDto updateDto = new RequestUpdateUserDto("NewName", "newemail@mail.com");
+
+        mockMvc.perform(put("/api/user/update/{id}", savedUser.getId())
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk());
+
+        User updatedUser = userRepository.findById(savedUser.getId()).orElseThrow();
+        assertThat(updatedUser.getName()).isEqualTo("NewName");
+        assertThat(updatedUser.getEmail()).isEqualTo("newemail@mail.com");
     }
 
     @Test
@@ -185,7 +222,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 )
         );
 
-        mockMvc.perform(get("/api/user/internal/getAll/order")
+        mockMvc.perform(get("/api/user/internal/getAll/orderInfo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestList)))
                 .andExpect(status().isOk())
@@ -195,7 +232,6 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @Test
     @DisplayName("Internal: Успешная валидация сотрудников по ID без заголовков авторизации")
     void shouldValidateWorkersInternal() throws Exception {
-        // Добавил генерацию ID для worker1 и worker2
         User worker1 = User.builder().id(UUID.randomUUID()).email("worker1@mail.com").name("Ivan").build();
         User worker2 = User.builder().id(UUID.randomUUID()).email("worker2@mail.com").name("Petr").build();
         userRepository.saveAll(List.of(worker1, worker2));
@@ -210,18 +246,42 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Internal: Успешное deletion сотрудников конкретной автостанции без заголовков авторизации")
-    void shouldDeleteWorkersByWorkplaceInternal() throws Exception {
-        mockMvc.perform(delete("/api/user/internal/delete/by/workplace/{id}", 100L)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+    @DisplayName("RabbitMQ: Успешная обработка события регистрации пользователя (UserEventConsumer)")
+    void shouldHandleUserRegisterEvent() throws InterruptedException {
+        createAndSaveRole("WORKER");
+        UUID newUserId = UUID.randomUUID();
+        UserRegisterEvent event = new UserRegisterEvent(newUserId, "rabbit@mail.com", "RabbitWorker", "hash", "WORKER", 99L);
+
+        rabbitTemplate.convertAndSend(registrationQueue, event);
+
+        Thread.sleep(500);
+
+        assertThat(userRepository.findById(newUserId)).isPresent();
+        assertThat(userRepository.findById(newUserId).get().getName()).isEqualTo("RabbitWorker");
+    }
+
+    @Test
+    @DisplayName("RabbitMQ: Успешное удаление сотрудников при удалении автостанции")
+    void shouldHandleStationDeleteEvent() throws InterruptedException {
+        createAndSaveTestUser(55L, "WorkerOnStation55");
+        User userToKeep = createAndSaveTestUser(77L, "WorkerOnStation77");
+
+        rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
+
+        Thread.sleep(500);
+
+        List<User> remainingUsers = userRepository.findAll();
+        assertThat(remainingUsers).hasSize(1);
+        assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());
     }
 
     private User createAndSaveTestUser(Long stationId, String name) {
+        Role role = roleRepository.findByName("WORKER").orElseGet(() -> createAndSaveRole("WORKER"));
         User user = User.builder()
                 .id(UUID.randomUUID())
                 .email("test_" + name.toLowerCase() + "@mail.com")
                 .name(name)
+                .role(role)
                 .workplaceId(stationId)
                 .build();
         return userRepository.save(user);

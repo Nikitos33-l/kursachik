@@ -92,7 +92,6 @@ public class CarServiceTest {
     @Test
     @DisplayName("Создание новой машины, если она не найдена по номеру")
     void getOrCreateCar_CreatesNew() {
-        // Передаем clientId (UUID) вместо 1L в конце
         CarRequestDto request = new CarRequestDto("NewMake", "NewModel", "C333CC", clientId);
         VehicleDto dto = new VehicleDto(2L, "NewModel", "NewMake", "C333CC");
 

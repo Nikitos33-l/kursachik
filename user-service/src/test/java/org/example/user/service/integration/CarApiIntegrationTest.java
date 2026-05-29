@@ -28,7 +28,6 @@ class CarApiIntegrationTest extends BaseIntegrationTest {
                 .build();
         Vehicle savedVehicle = vehicleRepository.save(vehicle);
 
-        // Используем сохраненный ID машины из БД (savedVehicle.getId()) вместо захардкоженного 1L
         List<OrderVehicleMappingRequest> requestList = List.of(
                 new OrderVehicleMappingRequest(1L, savedVehicle.getId())
         );
@@ -46,7 +45,6 @@ class CarApiIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("Успешное создание автомобиля в реальной БД, если его там не было")
     void shouldCreateCarInDatabaseIfNotExist() throws Exception {
-        // Заменили 1L на UUID.randomUUID() для соответствия новому типу clientId
         CarRequestDto carRequestDto = new CarRequestDto("BMW", "X5", "BB2222-7", UUID.randomUUID());
 
         assertThat(vehicleRepository.findAll()).isEmpty();

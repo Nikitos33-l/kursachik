@@ -45,6 +45,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>rabbitmq</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.example</groupId>
             <artifactId>user-service-api-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
