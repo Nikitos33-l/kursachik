@@ -9,8 +9,10 @@ import org.example.station.service.dto.response.ResponseServiceDto;
 import org.example.station.service.entity.Service;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.ServiceMapper;
+import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.ServiceRepository;
 import org.example.station.service.repository.StationRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,35 +33,54 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class ServiceManagementServiceTest {
 
-    @Mock
-    private ServiceRepository serviceRepository;
-    @Mock
-    private ServiceMapper serviceMapper;
-    @Mock
-    private StationService stationService;
-    @Mock
-    private StationRepository stationRepository;
+    @Mock private ServiceRepository serviceRepository;
+    @Mock private ServiceMapper serviceMapper;
+    @Mock private StationService stationService;
+    @Mock private StationRepository stationRepository;
+    @Mock private StationEventProducer stationEventProducer;
+    @Mock private ServiceCacheRepository serviceCacheRepository;
 
     @InjectMocks
     private ServiceManagementService serviceManagementService;
 
+    private Station sampleStation;
+    private Service sampleService;
+    private final Long stationId = 10L;
+    private final Long serviceId = 1L;
+
+    @BeforeEach
+    void setUp() {
+        sampleStation = new Station();
+        sampleStation.setId(stationId);
+
+        sampleService = new Service();
+        sampleService.setId(serviceId);
+        sampleService.setName("Standard Wash");
+        sampleService.setPrice(BigDecimal.valueOf(100));
+        sampleService.setStation(sampleStation);
+    }
+
     @Test
-    @DisplayName("findAll для ROLE_USER: берет stationId из аргумента")
+    @DisplayName("findAll для ROLE_USER: берет stationId из переданного аргумента")
     void findAll_RoleUser_UsesProvidedId() {
         Long providedId = 1L;
         UserPrincipal principal = mock(UserPrincipal.class);
         var authority = new SimpleGrantedAuthority("ROLE_USER");
 
         doReturn(List.of(authority)).when(principal).getAuthorities();
-        when(serviceRepository.findAllByStation_id(providedId)).thenReturn(Collections.emptyList());
 
-        serviceManagementService.findAll(providedId, principal);
+        List<ResponseServiceDto> expectedResult = List.of(new ResponseServiceDto(serviceId, "Wash", BigDecimal.TEN));
+        when(serviceCacheRepository.getServicesByStationId(providedId)).thenReturn(expectedResult);
 
-        verify(serviceRepository).findAllByStation_id(providedId);
+        List<ResponseServiceDto> result = serviceManagementService.findAll(providedId, principal);
+
+        assertNotNull(result);
+        assertEquals(expectedResult, result);
+        verify(serviceCacheRepository, times(1)).getServicesByStationId(providedId);
     }
 
     @Test
-    @DisplayName("findAll для других ролей: берет stationId из токена")
+    @DisplayName("findAll для других ролей: берет stationId из principal")
     void findAll_OtherRole_UsesPrincipalId() {
         Long providedId = 1L;
         Long principalStationId = 99L;
@@ -67,90 +88,100 @@ class ServiceManagementServiceTest {
 
         when(principal.getAuthorities()).thenReturn(Collections.emptyList());
         when(principal.stationId()).thenReturn(principalStationId);
-        when(serviceRepository.findAllByStation_id(principalStationId)).thenReturn(Collections.emptyList());
+        when(serviceCacheRepository.getServicesByStationId(principalStationId)).thenReturn(Collections.emptyList());
 
-        serviceManagementService.findAll(providedId, principal);
+        List<ResponseServiceDto> result = serviceManagementService.findAll(providedId, principal);
 
-        verify(serviceRepository).findAllByStation_id(principalStationId);
-        verify(serviceRepository, never()).findAllByStation_id(providedId);
+        assertNotNull(result);
+        verify(serviceCacheRepository).getServicesByStationId(principalStationId);
+        verify(serviceCacheRepository, never()).getServicesByStationId(providedId);
     }
 
     @Test
     @DisplayName("Успешное получение услуги по ID")
     void findById_Success() {
-        Long id = 1L;
-        Service service = new Service();
-        when(serviceRepository.findById(id)).thenReturn(Optional.of(service));
-        when(serviceMapper.toDto(service)).thenReturn(new ResponseServiceDto(id, "Test", BigDecimal.TEN));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(sampleService));
 
-        ResponseServiceDto result = serviceManagementService.findById(id);
+        ResponseServiceDto expectedDto = new ResponseServiceDto(serviceId, "Standard Wash", BigDecimal.valueOf(100));
+        when(serviceMapper.toDto(sampleService)).thenReturn(expectedDto);
+
+        ResponseServiceDto result = serviceManagementService.findById(serviceId);
 
         assertNotNull(result);
-        assertEquals(id, result.id());
+        assertEquals("Standard Wash", result.name());
+        verify(serviceRepository, times(1)).findById(serviceId);
     }
 
     @Test
-    @DisplayName("Ошибка, если услуга не найдена")
-    void findById_NotFound() {
-        when(serviceRepository.findById(anyLong())).thenReturn(Optional.empty());
+    @DisplayName("Ошибка EntityNotFoundException, если услуга не найдена")
+    void findById_NotFound_ThrowsException() {
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.empty());
 
-        assertThrows(EntityNotFoundException.class, () -> serviceManagementService.findById(1L));
+        assertThrows(EntityNotFoundException.class, () -> serviceManagementService.findById(serviceId));
     }
 
     @Test
-    @DisplayName("Обновление существующей услуги")
+    @DisplayName("Успешное обновление услуги с инвалидацией кэша и отправкой события")
     void update_Success() {
-        Long id = 1L;
-        RequestServiceDto dto = new RequestServiceDto("New Name", BigDecimal.valueOf(500));
-        Service existingService = new Service();
+        RequestServiceDto dto = new RequestServiceDto("Premium Wash", BigDecimal.valueOf(150));
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(sampleService));
 
-        when(serviceRepository.findById(id)).thenReturn(Optional.of(existingService));
+        serviceManagementService.update(serviceId, dto);
 
-        serviceManagementService.update(id, dto);
+        assertEquals("Premium Wash", sampleService.getName());
+        assertEquals(BigDecimal.valueOf(150), sampleService.getPrice());
 
-        assertEquals("New Name", existingService.getName());
-        assertEquals(BigDecimal.valueOf(500), existingService.getPrice());
+        verify(serviceCacheRepository, times(1)).evictCache(stationId);
+        verify(stationEventProducer, times(1)).sendStationServicesUpdatedEvent(stationId);
     }
 
     @Test
-    @DisplayName("Успешное добавление новой услуги")
+    @DisplayName("Успешное добавление услуги и сброс кэша станции")
     void add_Success() {
-        RequestServiceDto dto = new RequestServiceDto("Wash", BigDecimal.valueOf(100));
+        RequestServiceDto dto = new RequestServiceDto("Dry Cleaning", BigDecimal.valueOf(300));
         UserPrincipal principal = mock(UserPrincipal.class);
-        Station station = new Station();
-        Service service = new Service();
+        Service newService = new Service();
 
-        when(principal.stationId()).thenReturn(5L);
-        when(stationService.getStationById(5L)).thenReturn(station);
-        when(serviceMapper.toEntity(dto, station)).thenReturn(service);
+        when(principal.stationId()).thenReturn(stationId);
+        when(stationService.getStationById(stationId)).thenReturn(sampleStation);
+        when(serviceMapper.toEntity(dto, sampleStation)).thenReturn(newService);
 
         serviceManagementService.add(dto, principal);
 
-        verify(serviceRepository).save(service);
+        verify(serviceRepository, times(1)).save(newService);
+        verify(serviceCacheRepository, times(1)).evictCache(stationId);
     }
 
     @Test
-    @DisplayName("Удаление услуги по ID")
+    @DisplayName("Успешное удаление услуги с вызовом репозитория и триггером события")
     void delete_Success() {
-        serviceManagementService.delete(1L);
-        verify(serviceRepository).deleteById(1L);
+        when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(sampleService));
+
+        serviceManagementService.delete(serviceId);
+
+        verify(serviceRepository, times(1)).delete(sampleService);
+        verify(serviceCacheRepository, times(1)).evictCache(stationId);
+        verify(stationEventProducer, times(1)).sendStationServicesUpdatedEvent(stationId);
     }
 
     @Test
-    @DisplayName("Массовый поиск услуг и проверка существования станции")
+    @DisplayName("Валидация списка услуг и проверка существования автостанции")
     void findByIdsAndValidateService_Success() {
         List<Long> ids = List.of(1L, 2L);
-        Long stationId = 10L;
-        ServiceDetailDto detail = new ServiceDetailDto(1L, "Service", BigDecimal.ONE);
+        ServiceDetailDto detailDto = new ServiceDetailDto(serviceId, "Standard Wash", BigDecimal.valueOf(100));
 
-        when(serviceRepository.findAllByIdIn(ids)).thenReturn(Collections.emptyList());
-        when(serviceMapper.toDtoDetailsList(any())).thenReturn(List.of(detail));
+        when(serviceRepository.findAllByIdIn(ids)).thenReturn(List.of(sampleService));
+        when(serviceMapper.toDtoDetailsList(any())).thenReturn(List.of(detailDto));
         when(stationRepository.existsById(stationId)).thenReturn(true);
 
         StationServicesResponse response = serviceManagementService.findByIdsAndValidateService(ids, stationId);
 
+        assertNotNull(response);
         assertTrue(response.stationExists());
         assertEquals(1, response.services().size());
-        verify(stationRepository).existsById(stationId);
+        assertEquals("Standard Wash", response.services().get(0).name());
+
+        verify(stationRepository, times(1)).existsById(stationId);
+        verify(serviceRepository, times(1)).findAllByIdIn(ids);
     }
 }
