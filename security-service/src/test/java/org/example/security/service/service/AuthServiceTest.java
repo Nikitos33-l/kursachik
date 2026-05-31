@@ -1,60 +1,75 @@
 package org.example.security.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.example.user.service.dto.request.LoginRequest;
-import org.example.user.service.dto.request.RegisterRequest;
-import org.example.user.service.dto.response.TokenPair;
-import org.example.user.service.entity.*;
-import org.example.user.service.repository.RoleRepository;
-import org.example.user.service.repository.UserRepository;
+import org.example.security.service.dto.request.LoginRequest;
+import org.example.security.service.dto.request.RegisterRequest;
+import org.example.security.service.dto.response.TokenPair;
+import org.example.security.service.entity.Role;
+import org.example.security.service.entity.User;
+import org.example.security.service.producer.UserEventProducer;
+import org.example.security.service.repository.RoleRepository;
+import org.example.security.service.repository.UserRepository;
+import org.example.user.contracts.UserRegisterEvent;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Optional;
-import java.util.UUID; // Не забываем импорт
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class AuthServiceTest {
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private PasswordEncoder passwordEncoder;
-    @Mock
-    private RoleRepository roleRepository;
-    @Mock
-    private JwtService jwtService;
+class AuthServiceTest {
+
+    @Mock private UserRepository userRepository;
+    @Mock private PasswordEncoder passwordEncoder;
+    @Mock private RoleRepository roleRepository;
+    @Mock private JwtService jwtService;
+    @Mock private UserEventProducer userEventProducer;
 
     @InjectMocks
     private AuthService authService;
 
     private final UUID userId = UUID.randomUUID();
+    private User sampleUser;
+    private Role clientRole;
+
+    @BeforeEach
+    void setUp() {
+        clientRole = new Role();
+        clientRole.setName("CLIENT");
+
+        sampleUser = User.builder()
+                .id(userId)
+                .email("test@mail.com")
+                .password("encoded_password")
+                .role(clientRole)
+                .workplaceId(10L)
+                .build();
+    }
 
     @Test
     @DisplayName("Успешный логин")
     void login_Success() {
         LoginRequest request = new LoginRequest("test@mail.com", "password");
-        Role role = new Role();
-        role.setName("CLIENT");
 
-        User user = User.builder().id(userId).email("test@mail.com")
-                .password("encoded_password").role(role).workplaceId(10L).build();
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.of(sampleUser));
+        when(passwordEncoder.matches(request.password(), sampleUser.getPassword())).thenReturn(true);
 
-        when(userRepository.findByEmail(request.email())).thenReturn(user);
-        when(passwordEncoder.matches(request.password(), user.getPassword())).thenReturn(true);
-
-        when(jwtService.createAccessToken(any(UUID.class), anyString(), anyString(), anyLong())).thenReturn("access");
-        when(jwtService.createRefreshToken(anyString())).thenReturn("refresh");
+        when(jwtService.createAccessToken(eq(userId), eq("test@mail.com"), eq("CLIENT"), eq(10L))).thenReturn("access");
+        when(jwtService.createRefreshToken(eq("test@mail.com"))).thenReturn("refresh");
 
         TokenPair result = authService.login(request);
 
@@ -68,7 +83,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Логин провален: пользователь не найден")
     void login_UserNotFound() {
-        when(userRepository.findByEmail(anyString())).thenReturn(null);
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
 
         assertThrows(BadCredentialsException.class, () -> authService.login(new LoginRequest("a", "b")));
     }
@@ -76,39 +91,48 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Логин провален: неверный пароль")
     void login_WrongPassword() {
-        User user = new User();
-        user.setPassword("correct");
-        when(userRepository.findByEmail(anyString())).thenReturn(user);
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(sampleUser));
         when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
 
         assertThrows(BadCredentialsException.class, () -> authService.login(new LoginRequest("a", "b")));
     }
 
     @Test
-    @DisplayName("Успешная регистрация")
+    @DisplayName("Успешная регистрация и отправка события")
     void register_Success() {
         RegisterRequest request = new RegisterRequest("New User", "new@mail.com", "pass");
-        Role clientRole = new Role();
-        clientRole.setName("CLIENT");
 
-        when(userRepository.findByEmail(request.email())).thenReturn(null);
-        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(clientRole));
+        when(userRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(passwordEncoder.encode(request.password())).thenReturn("encoded_pass");
+        when(roleRepository.findByName("CLIENT")).thenReturn(Optional.of(clientRole));
 
-        when(jwtService.createAccessToken(any(), anyString(), anyString(), any())).thenReturn("access");
+        when(jwtService.createAccessToken(any(UUID.class), eq("new@mail.com"), eq("CLIENT"), isNull())).thenReturn("access");
         when(jwtService.createRefreshToken(anyString())).thenReturn("refresh");
 
-        TokenPair result = authService.register(request);
+        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
+            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
 
-        assertNotNull(result);
-        verify(userRepository).save(any(User.class));
-        verify(jwtService).createAccessToken(any(), eq("new@mail.com"), eq("CLIENT"), isNull());
+            tsmMock.when(() -> TransactionSynchronizationManager.registerSynchronization(any(TransactionSynchronization.class)))
+                    .thenAnswer(invocation -> {
+                        TransactionSynchronization sync = invocation.getArgument(0);
+                        sync.afterCommit();
+                        return null;
+                    });
+
+            TokenPair result = authService.register(request);
+
+            assertNotNull(result);
+            assertEquals("access", result.accessToken());
+
+            verify(userRepository).save(any(User.class));
+            verify(userEventProducer).publishUserRegisterEvent(any(UserRegisterEvent.class));
+        }
     }
 
     @Test
     @DisplayName("Регистрация провалена: email занят")
     void register_EmailExists() {
-        when(userRepository.findByEmail(anyString())).thenReturn(new User());
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.of(sampleUser));
 
         assertThrows(IllegalStateException.class, () -> authService.register(new RegisterRequest("n", "e", "p")));
     }
@@ -116,7 +140,8 @@ public class AuthServiceTest {
     @Test
     @DisplayName("Регистрация провалена: роль CLIENT не найдена")
     void register_RoleNotFound() {
-        when(userRepository.findByEmail(anyString())).thenReturn(null);
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(anyString())).thenReturn("encoded_pass");
         when(roleRepository.findByName("CLIENT")).thenReturn(Optional.empty());
 
         assertThrows(EntityNotFoundException.class, () -> authService.register(new RegisterRequest("n", "e", "p")));

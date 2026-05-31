@@ -10,7 +10,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -37,6 +39,16 @@ public class BaseIntegrationTest {
     @ServiceConnection
     @Container
     protected static final PostgreSQLContainer<?> container = new PostgreSQLContainer<>("postgres:18.4-alpine");
+
+    @ServiceConnection
+    @Container
+    protected static final RabbitMQContainer rabbitContainer = new RabbitMQContainer("rabbitmq:3-management-alpine");
+
+    @ServiceConnection(name = "redis")
+    @Container
+    protected static final GenericContainer<?> redisContainer = new GenericContainer<>("redis:7-alpine")
+            .withExposedPorts(6379);
+
 
     @BeforeEach
     void cleanUp() {
