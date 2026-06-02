@@ -21,7 +21,7 @@ public class TokenController {
     private final JwtService jwtService;
 
     @PostMapping("/internal/validate")
-    TokenValidationResultDto validateToken(@RequestHeader(name = HttpHeaders.AUTHORIZATION) String authHeader){
+    TokenValidationResultDto validateToken(@RequestHeader(name = HttpHeaders.AUTHORIZATION,required = false) String authHeader){
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return TokenValidationResultDto.invalid();
         }

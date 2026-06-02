@@ -16,8 +16,6 @@ public class BlackListService {
 
     private final String BLACK_LIST_PREFIX = "security-service:blacklist:";
 
-    private final Set<String> blacklistedUsers = ConcurrentHashMap.newKeySet();
-
     public void blacklistToken(String jti, long remainingTimeMillis) {
         redisTemplate.opsForValue().set(BLACK_LIST_PREFIX+"tokens:"+jti,"true", Duration.ofMillis(remainingTimeMillis));
     }
