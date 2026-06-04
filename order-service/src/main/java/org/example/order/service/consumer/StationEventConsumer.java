@@ -19,6 +19,7 @@ public class StationEventConsumer {
     @RabbitListener(queues = "${station.delete.queue}")
     public void handleStationDelete(@Payload Long stationId){
         service.deleteByStation(stationId);
+        stationIntegrationWrapper.evictCache(stationId);
     }
 
     @RabbitListener(queues = "${station.services.updated.queue}")

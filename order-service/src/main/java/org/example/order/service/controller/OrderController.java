@@ -13,7 +13,6 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/order")
@@ -46,8 +45,8 @@ public class OrderController {
 
     @PutMapping("/updateOrder/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public void updateOrder(@PathVariable Long orderId, @RequestBody PutOrderRequestDto requestDto){
-        orderService.updateOrder(requestDto,orderId);
+    public void updateOrder(@PathVariable Long id, @RequestBody PutOrderRequestDto requestDto){
+        orderService.updateOrder(requestDto,id);
     }
 
     @PostMapping("/create")

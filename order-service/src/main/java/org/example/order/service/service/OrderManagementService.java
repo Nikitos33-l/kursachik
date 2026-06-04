@@ -12,6 +12,7 @@ import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
 import org.example.order.service.entity.OrderItem;
 import org.example.order.service.entity.OrderStatus;
+import org.example.order.service.event.OrderStatusChangeEvent;
 import org.example.order.service.mapper.OrderItemMapper;
 import org.example.order.service.mapper.OrderMapper;
 import org.example.order.service.repository.OrderRepository;
@@ -34,6 +35,7 @@ import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +56,7 @@ public class OrderManagementService {
     private final StationServiceClient stationServiceClient;
     private final StationIntegrationWrapper stationIntegrationWrapper;
     private final CacheManager cacheManager;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional(readOnly = true)
     @Cacheable(value = ORDER_CACHE,key = "#id")
@@ -89,10 +92,18 @@ public class OrderManagementService {
         order.setOrderItems(orderItems);
         order.setClientId(userPrincipal.userId());
         order.setWorkerIds(new HashSet<>());
+
         order.setStatus(status, userPrincipal.email());
         order.setStationId(requestOrderDto.stationId());
 
-        orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
+
+        eventPublisher.publishEvent(new OrderStatusChangeEvent(
+                savedOrder.getId(),
+                savedOrder.getStatus(),
+                savedOrder.getClientId(),
+                userPrincipal.email()
+        ));
     }
 
     List<OrderItem> mapToOrderItem(List<ServiceDetailDto> services){

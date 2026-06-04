@@ -48,12 +48,16 @@ public class Order extends AbstractAggregateRoot<Order> {
 
     public void setStatus(OrderStatus status){
         this.status = status;
-        registerEvent(new OrderStatusChangeEvent(this.getId(), status,this.clientId,null));
+        if (this.id != null) {
+            registerEvent(new OrderStatusChangeEvent(this.getId(), status, this.clientId, null));
+        }
     }
 
     public void setStatus(OrderStatus status, String email) {
         this.status = status;
-        registerEvent(new OrderStatusChangeEvent(this.id, status, this.clientId, email));
+        if (this.id != null) {
+            registerEvent(new OrderStatusChangeEvent(this.id, status, this.clientId, email));
+        }
     }
 
     public void replaceWorkers(Set<UUID> newWorkerIds, Map<UUID, String> workerEmails) {

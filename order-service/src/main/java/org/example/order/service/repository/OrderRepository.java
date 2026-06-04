@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -21,6 +22,9 @@ public interface OrderRepository extends JpaRepository<Order,Long> {
     @Query("SELECT DISTINCT o FROM Order o LEFT JOIN FETCH o.orderItems" +
             " JOIN o.workerIds w WHERE w=:workerId")
     List<Order> findAllByWorkerId(@Param("workerId") UUID workerId);
+
+    @Query("SELECT o FROM Order o LEFT JOIN FETCH o.workerIds WHERE o.id = :id")
+    Optional<Order> findWithWorkerIdsById(@Param("id") Long id);
 
     List<Order> deleteAllByClientId(UUID clientId);
 
