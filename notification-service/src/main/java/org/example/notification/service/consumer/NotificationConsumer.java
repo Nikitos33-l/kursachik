@@ -7,11 +7,13 @@ import org.example.notification.service.dto.Request;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import org.springframework.validation.annotation.Validated;
 
 @Component
 @RequiredArgsConstructor
+@Validated
 public class NotificationConsumer {
-    EmailPushService service;
+    private final EmailPushService service;
 
     @RabbitListener(queues = "${notification.queue}")
     public void sendMessage(@Valid @Payload Request request){

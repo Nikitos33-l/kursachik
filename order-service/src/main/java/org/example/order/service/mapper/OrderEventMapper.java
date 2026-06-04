@@ -24,7 +24,7 @@ public class OrderEventMapper {
             case "IN_PROGRESS" -> "IN_PROGRESS";
             case "DONE"        -> "READY";
             case "CANCELLED"   -> "CANCELLED";
-            default            -> "NEW";
+            default            -> "PROBLEM";
         };
 
         return new OrderNotificationDto(
