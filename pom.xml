@@ -27,7 +27,6 @@
         <module>station-service-api-common</module>
         <module>station-service</module>
         <module>security-service-api-common</module>
-        <module>order-service-api-common</module>
         <module>user-conracts</module>
     </modules>
 
