@@ -30,7 +30,6 @@ public class AuthHeaderFilter extends OncePerRequestFilter {
         String emailHeader = request.getHeader("X-User-Email");
         String stationIdHeader = request.getHeader("X-Station-Id");
 
-        // Если нет ролей или ID пользователя, то и аутентифицировать некого — идем дальше
         if (!StringUtils.hasText(rolesHeader) || !StringUtils.hasText(userIdHeader)) {
             filterChain.doFilter(request, response);
             return;

@@ -1,16 +1,17 @@
 package org.example.security.service.api.common.client;
 
 import org.example.security.service.api.common.dto.TokenValidationResultDto;
-import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.HttpHeaders;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.service.annotation.HttpExchange;
+import org.springframework.web.service.annotation.PostExchange;
+import reactor.core.publisher.Mono;
 
-@FeignClient(name = "security-service")
+@HttpExchange("/api/token/internal/validate")
 public interface SecurityServiceClient {
 
-    @PostMapping("/api/token/internal/validate")
-    TokenValidationResultDto validateToken(@RequestHeader(name = HttpHeaders.AUTHORIZATION) String authHeader);
+    @PostExchange
+    Mono<TokenValidationResultDto> validateToken(@RequestHeader(name = HttpHeaders.AUTHORIZATION) String authHeader);
 
 
 }
