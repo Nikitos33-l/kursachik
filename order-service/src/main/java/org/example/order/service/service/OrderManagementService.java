@@ -89,7 +89,7 @@ public class OrderManagementService {
         order.setOrderItems(orderItems);
         order.setClientId(userPrincipal.userId());
         order.setWorkerIds(new HashSet<>());
-        order.setStatus(status);
+        order.setStatus(status, userPrincipal.email());
         order.setStationId(requestOrderDto.stationId());
 
         orderRepository.save(order);
@@ -114,10 +114,12 @@ public class OrderManagementService {
         OrderStatus dbStatus = getStatusOrThrow(status.id());
 
         dbOrder.setStatus(dbStatus);
+
+        orderRepository.save(dbOrder);
     }
 
     @Transactional
-    @CacheEvict(value = ORDER_CACHE,key = "#orderId")
+    @CacheEvict(value = ORDER_CACHE, key = "#orderId")
     public void updateOrder(PutOrderRequestDto requestDto, Long orderId) {
         Order order = getOrderOrThrow(orderId);
 
@@ -126,22 +128,20 @@ public class OrderManagementService {
         }
 
         Set<UUID> workerIds = requestDto.workersId();
-
         if(workerIds.isEmpty()){
             order.clearWorkers();
+            orderRepository.save(order);
             return;
         }
 
         ValidationResponse response = userServiceClient.validateWorkers(workerIds);
-
         if(response.exists()){
-            order.replaceWorkers(workerIds,response.emails());
-        }
-
-        else {
+            order.replaceWorkers(workerIds, response.emails());
+        } else {
             throw new EntityNotFoundException("Неверные id работников");
         }
 
+        orderRepository.save(order);
     }
 
     private Order getOrderOrThrow(Long id){

@@ -48,6 +48,7 @@ class OrderManagementServiceTest {
     @Mock private OrderMapper orderMapper;
     @Mock private OrderItemMapper orderItemMapper;
     @Mock private StationServiceClient stationServiceClient;
+    @Mock private StationIntegrationWrapper stationIntegrationWrapper;
 
     @InjectMocks
     private OrderManagementService orderManagementService;
@@ -120,7 +121,9 @@ class OrderManagementServiceTest {
         OrderStatus newStatus = new OrderStatus();
 
         when(userServiceClient.getOrCreateCar(any(CarRequestDto.class))).thenReturn(savedVehicle);
-        when(stationServiceClient.validateStationAndGetServices(eq(10L), anyList())).thenReturn(stationResponse);
+
+        when(stationIntegrationWrapper.getValidatedServices(eq(10L), anyList())).thenReturn(stationResponse);
+
         when(orderStatusRepository.findById("NEW")).thenReturn(Optional.of(newStatus));
 
         orderManagementService.createOrder(requestDto, principal);
@@ -136,7 +139,8 @@ class OrderManagementServiceTest {
         UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
 
         when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(vehicleId, "A", "B", "C"));
-        when(stationServiceClient.validateStationAndGetServices(anyLong(), anyList()))
+
+        when(stationIntegrationWrapper.getValidatedServices(anyLong(), anyList()))
                 .thenReturn(new StationServicesResponse(false, List.of()));
 
         EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,

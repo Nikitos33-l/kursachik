@@ -139,6 +139,11 @@ public class UserService {
         return new ValidationResponse(true, emails);
     }
 
+    @Transactional(readOnly = true)
+    public String getEmailById(UUID id) {
+        return getById(id).getEmail();
+    }
+
     @Transactional
     public void deleteUser(UUID id) {
         User user = getById(id);

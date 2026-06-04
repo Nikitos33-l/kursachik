@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.example.order.service.event.OrderStatusChangeEvent;
+import org.example.order.service.event.WorkerAssignmentEvent;
 import org.hibernate.annotations.BatchSize;
 import org.springframework.data.domain.AbstractAggregateRoot;
 
@@ -46,7 +48,12 @@ public class Order extends AbstractAggregateRoot<Order> {
 
     public void setStatus(OrderStatus status){
         this.status = status;
-        registerEvent(new Object());
+        registerEvent(new OrderStatusChangeEvent(this.getId(), status,this.clientId,null));
+    }
+
+    public void setStatus(OrderStatus status, String email) {
+        this.status = status;
+        registerEvent(new OrderStatusChangeEvent(this.id, status, this.clientId, email));
     }
 
     public void replaceWorkers(Set<UUID> newWorkerIds, Map<UUID, String> workerEmails) {
@@ -72,7 +79,7 @@ public class Order extends AbstractAggregateRoot<Order> {
 
     private void addWorker(UUID workerId, String email) {
         if (this.workerIds.add(workerId)) {
-            registerEvent(new Object());
+            registerEvent(new WorkerAssignmentEvent(this.getId(), email));
         }
     }
 

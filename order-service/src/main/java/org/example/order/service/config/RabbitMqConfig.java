@@ -19,6 +19,11 @@ public class RabbitMqConfig {
     private final String userEventsExchange;
     private final String userDeleteQueue;
     private final String userDeleteRoutingKey;
+
+    private final String userUpdateQueue;
+    private final String userUpdateRoutingKey;
+    private final String userUpdateDlq;
+
     private final String stationEventExchange;
     private final String stationDeleteQueue;
     private final String stationDeleteRoutingKey;
@@ -35,6 +40,11 @@ public class RabbitMqConfig {
              @Value("${user.event.exchange}") String userEventsExchange,
              @Value("${user.delete.queue}") String userDeleteQueue,
              @Value("${user.delete.routing.key}") String userDeleteRoutingKey,
+
+             @Value("${user.update.queue}") String userUpdateQueue,
+             @Value("${user.update.routing.key}") String userUpdateRoutingKey,
+             @Value("${order.dlq.user-update}") String userUpdateDlq,
+
              @Value("${station.exchange.name}") String stationEventExchange,
              @Value("${station.delete.queue}") String stationDeleteQueue,
              @Value("${station.delete.routing.key}") String stationDeleteRoutingKey,
@@ -49,6 +59,11 @@ public class RabbitMqConfig {
         this.userEventsExchange = userEventsExchange;
         this.userDeleteQueue = userDeleteQueue;
         this.userDeleteRoutingKey = userDeleteRoutingKey;
+
+        this.userUpdateQueue = userUpdateQueue;
+        this.userUpdateRoutingKey = userUpdateRoutingKey;
+        this.userUpdateDlq = userUpdateDlq;
+
         this.stationEventExchange = stationEventExchange;
         this.stationDeleteQueue = stationDeleteQueue;
         this.stationDeleteRoutingKey = stationDeleteRoutingKey;
@@ -96,6 +111,16 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    Queue userUpdateQueue(){
+        return new Queue(userUpdateQueue);
+    }
+
+    @Bean
+    Queue userUpdateDlq(){
+        return new Queue(userUpdateDlq);
+    }
+
+    @Bean
     Queue stationDeleteDlq(){
         return new Queue(stationDeleteDlq);
     }
@@ -106,6 +131,11 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    Binding userUpdateBinding(){
+        return BindingBuilder.bind(userUpdateQueue()).to(userEventExchange()).with(userUpdateRoutingKey);
+    }
+
+    @Bean
     Binding stationDeleteBinding(){
         return BindingBuilder.bind(stationDeleteQueue()).to(stationEventExchange()).with(stationDeleteRoutingKey);
     }
@@ -113,6 +143,11 @@ public class RabbitMqConfig {
     @Bean
     Binding userDeleteDlqBinding(){
         return BindingBuilder.bind(userDeleteDlq()).to(deadLetterExchange()).with(userDeleteRoutingKey);
+    }
+
+    @Bean
+    Binding userUpdateDlqBinding(){
+        return BindingBuilder.bind(userUpdateDlq()).to(deadLetterExchange()).with(userUpdateRoutingKey);
     }
 
     @Bean

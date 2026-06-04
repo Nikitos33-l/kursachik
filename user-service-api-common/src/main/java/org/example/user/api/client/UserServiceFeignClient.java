@@ -32,4 +32,6 @@ public interface UserServiceFeignClient {
     @PostMapping("/api/cars/internal/get-or-create")
     VehicleDto getOrCreateCar(@RequestBody CarRequestDto carRequest);
 
+    @GetMapping("/api/user/internal/email/{id}")
+    String getEmailByUserId(@PathVariable UUID id);
 }

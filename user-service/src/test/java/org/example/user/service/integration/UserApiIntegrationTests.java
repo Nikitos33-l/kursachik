@@ -1,5 +1,6 @@
 package org.example.user.service.integration;
 
+import org.awaitility.Awaitility;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.service.dto.request.RequestAddUserDto;
@@ -17,6 +18,7 @@ import org.springframework.http.MediaType;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
@@ -254,10 +256,13 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         rabbitTemplate.convertAndSend(registrationQueue, event);
 
-        Thread.sleep(500);
+        Awaitility.await().atMost(5, TimeUnit.SECONDS).
+                pollInterval(200,TimeUnit.MILLISECONDS)
+                .untilAsserted(()->{
+                    assertThat(userRepository.findById(newUserId)).isPresent();
+                    assertThat(userRepository.findById(newUserId).get().getName()).isEqualTo("RabbitWorker");
+                });
 
-        assertThat(userRepository.findById(newUserId)).isPresent();
-        assertThat(userRepository.findById(newUserId).get().getName()).isEqualTo("RabbitWorker");
     }
 
     @Test
@@ -268,11 +273,13 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
 
-        Thread.sleep(500);
-
-        List<User> remainingUsers = userRepository.findAll();
-        assertThat(remainingUsers).hasSize(1);
-        assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());
+        Awaitility.await().atMost(5,TimeUnit.SECONDS).
+                pollInterval(200,TimeUnit.MILLISECONDS).
+                untilAsserted(()->{
+                    List<User> remainingUsers = userRepository.findAll();
+                    assertThat(remainingUsers).hasSize(1);
+                    assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());
+                });
     }
 
     private User createAndSaveTestUser(Long stationId, String name) {

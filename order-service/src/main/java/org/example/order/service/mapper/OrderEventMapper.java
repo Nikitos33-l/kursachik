@@ -1,13 +1,9 @@
 package org.example.order.service.mapper;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.example.order.service.dto.OrderNotificationDto;
 import org.example.order.service.event.OrderStatusChangeEvent;
 import org.example.order.service.event.WorkerAssignmentEvent;
 import org.springframework.stereotype.Component;
-
-import java.util.Arrays;
 
 @Component
 public class OrderEventMapper {
@@ -20,35 +16,21 @@ public class OrderEventMapper {
         );
     }
 
-    public OrderNotificationDto toDto(OrderStatusChangeEvent event) {
+    public OrderNotificationDto toDto(OrderStatusChangeEvent event, String email) {
         String dbCode = event.newStatus().getId();
 
-        String typeForBroker = StatusMapping.getNotificationTypeByDbCode(dbCode);
+        String typeForBroker = switch (dbCode.toUpperCase()) {
+            case "NEW"         -> "NEW";
+            case "IN_PROGRESS" -> "IN_PROGRESS";
+            case "DONE"        -> "READY";
+            case "CANCELLED"   -> "CANCELLED";
+            default            -> "NEW";
+        };
 
         return new OrderNotificationDto(
                 event.orderId(),
-                event.userEmail(),
+                email,
                 typeForBroker
         );
-    }
-
-    @Getter
-    @RequiredArgsConstructor
-    private enum StatusMapping {
-        NEW("NEW", "NEW"),
-        IN_PROGRESS("IN_PROGRESS", "IN_PROGRESS"),
-        DONE("DONE", "READY"),
-        CANCELLED("CANCELLED", "CANCELLED");
-
-        private final String dbCode;
-        private final String notificationType;
-
-        public static String getNotificationTypeByDbCode(String code) {
-            return Arrays.stream(values())
-                    .filter(s -> s.dbCode.equalsIgnoreCase(code))
-                    .findFirst()
-                    .map(StatusMapping::getNotificationType)
-                    .orElse("NEW");
-        }
     }
 }

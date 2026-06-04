@@ -2,6 +2,7 @@ package org.example.order.service.consumer;
 
 import lombok.RequiredArgsConstructor;
 import org.example.order.service.service.OrderManagementService;
+import org.example.order.service.service.StationIntegrationWrapper;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -13,7 +14,7 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class StationEventConsumer {
     private final OrderManagementService service;
-    private final StringRedisTemplate redisTemplate;
+    private final StationIntegrationWrapper stationIntegrationWrapper;
 
     @RabbitListener(queues = "${station.delete.queue}")
     public void handleStationDelete(@Payload Long stationId){
@@ -22,11 +23,7 @@ public class StationEventConsumer {
 
     @RabbitListener(queues = "${station.services.updated.queue}")
     public void onStationServicesUpdated(Long stationId) {
-        String pattern = "order-service:station-validation::station:" + stationId + ":services:*";
-        Set<String> keysToDelete = redisTemplate.keys(pattern);
-        if (!keysToDelete.isEmpty()) {
-                redisTemplate.delete(keysToDelete);
-        }
+       stationIntegrationWrapper.evictCache(stationId);
     }
 
 }

@@ -27,10 +27,12 @@ public class RedisConfig {
                 .disableCachingNullValues();
 
         RedisCacheConfiguration stationValidationCfg = defaultCfg.entryTtl(Duration.ofHours(24));
+        RedisCacheConfiguration userValidationConfig = defaultCfg.entryTtl(Duration.ofHours(24));
 
         return RedisCacheManager.builder(redisConnectionFactory)
                 .cacheDefaults(defaultCfg)
                 .withCacheConfiguration(STATION_VALIDATION_CACHE, stationValidationCfg)
+                .withCacheConfiguration(USER_EMAIL_CACHE,userValidationConfig)
                 .build();
     }
 }

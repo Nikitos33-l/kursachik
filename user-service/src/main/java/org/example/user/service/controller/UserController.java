@@ -77,4 +77,11 @@ public class UserController {
         return userService.validateWorkers(ids);
     }
 
+    @GetMapping("/internal/email/{id}")
+    public String getEmailByUserId(@PathVariable UUID id){
+        return userService.getEmailById(id);
+    }
+
+
+
 }
