@@ -25,11 +25,6 @@
         </dependency>
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>order-service-api-common</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.example</groupId>
             <artifactId>user-service-api-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
@@ -37,6 +32,10 @@
             <groupId>org.example</groupId>
             <artifactId>station-service-api-common</artifactId>
             <version>0.0.1-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

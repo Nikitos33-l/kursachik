@@ -1,6 +1,5 @@
 package org.example.order.service.config;
 
-import org.example.order.service.constant.CacheNames;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
