@@ -26,7 +26,7 @@ public class Order extends AbstractAggregateRoot<Order> {
     private Long vehicleId;
 
     @ManyToOne
-    @JoinColumn(name="status")
+    @JoinColumn(name="status", nullable = false)
     @Setter(lombok.AccessLevel.NONE)
     private OrderStatus status;
 
@@ -37,14 +37,14 @@ public class Order extends AbstractAggregateRoot<Order> {
     private UUID clientId;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "order_id")
-    private List<OrderItem> orderItems;
+    @JoinColumn(name = "order_id", nullable = false)
+    private List<OrderItem> orderItems = new ArrayList<>();
 
     @ElementCollection
-    @CollectionTable(name = "orders_workers",joinColumns = @JoinColumn(name = "order_id"))
+    @CollectionTable(name = "orders_workers", joinColumns = @JoinColumn(name = "order_id"))
     @Column(name = "worker_id")
     @BatchSize(size = 20)
-    private Set<UUID> workerIds;
+    private Set<UUID> workerIds = new HashSet<>();
 
     public void setStatus(OrderStatus status){
         this.status = status;

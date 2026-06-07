@@ -15,9 +15,12 @@ public class OrderItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "service_id", nullable = false)
     private Long serviceId;
 
+    @Column(name = "service_name")
     private String serviceName;
 
+    @Column(name = "price_at_order", nullable = false)
     private BigDecimal priceAtOrder;
 }
