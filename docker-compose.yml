@@ -20,6 +20,20 @@ services:
       - redis_data:/data
     command: redis-server --appendonly yes --save 900 1 --save 300 10
     restart: always
+  postgres-server:
+    image: postgres:16-alpine
+    container_name: sto-postgres-server
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
 
 volumes:
   redis_data:
+  postgres_data:

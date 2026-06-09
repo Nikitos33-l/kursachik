@@ -50,7 +50,7 @@ public class OrderController {
     }
 
     @PostMapping("/create")
-    public void create_order(@RequestBody RequestOrderDto order, @AuthenticationPrincipal UserPrincipal userPrincipal){
+    public void createOrder(@RequestBody RequestOrderDto order, @AuthenticationPrincipal UserPrincipal userPrincipal){
         orderService.createOrder(order,userPrincipal);
     }
 

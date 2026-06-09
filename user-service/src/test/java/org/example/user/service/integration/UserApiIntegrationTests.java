@@ -203,7 +203,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 savedVehicle.getId()
         );
 
-        mockMvc.perform(get("/api/user/internal/get/orderInfo")
+        mockMvc.perform(post("/api/user/internal/get/orderInfo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
                 .andExpect(status().isOk());
@@ -224,7 +224,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 )
         );
 
-        mockMvc.perform(get("/api/user/internal/getAll/orderInfo")
+        mockMvc.perform(post("/api/user/internal/getAll/orderInfo")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestList)))
                 .andExpect(status().isOk())
@@ -238,7 +238,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         User worker2 = User.builder().id(UUID.randomUUID()).email("worker2@mail.com").name("Petr").build();
         userRepository.saveAll(List.of(worker1, worker2));
 
-        mockMvc.perform(get("/api/user/internal/validate-workers")
+        mockMvc.perform(post("/api/user/internal/validate-workers")
                         .param("ids", worker1.getId().toString(), worker2.getId().toString())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -246,7 +246,6 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.emails.['" + worker1.getId() + "']").value("worker1@mail.com"))
                 .andExpect(jsonPath("$.emails.['" + worker2.getId() + "']").value("worker2@mail.com"));
     }
-
     @Test
     @DisplayName("RabbitMQ: Успешная обработка события регистрации пользователя (UserEventConsumer)")
     void shouldHandleUserRegisterEvent() throws InterruptedException {

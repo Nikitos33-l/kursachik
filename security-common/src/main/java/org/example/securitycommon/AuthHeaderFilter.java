@@ -45,6 +45,7 @@ public class AuthHeaderFilter extends OncePerRequestFilter {
             List<SimpleGrantedAuthority> authorities = Arrays.stream(rolesHeader.split(","))
                     .map(String::trim)
                     .filter(StringUtils::hasText)
+                    .map(role -> role.startsWith("ROLE_") ? role : "ROLE_" + role)
                     .map(SimpleGrantedAuthority::new)
                     .toList();
 

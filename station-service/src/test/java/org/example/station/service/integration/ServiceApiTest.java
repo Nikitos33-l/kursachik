@@ -160,7 +160,7 @@ class ServiceApiTest extends BaseIntegrationTests {
 
         List<Long> ids = List.of(service1.getId(), service2.getId());
 
-        mockMvc.perform(get("/api/service/internal/{stationId}/validate", station.getId())
+        mockMvc.perform(post("/api/service/internal/{stationId}/validate", station.getId())
                         .headers(getSecurityHeaders("ROLE_SYSTEM", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(ids)))

@@ -32,7 +32,7 @@ class CarApiIntegrationTest extends BaseIntegrationTest {
                 new OrderVehicleMappingRequest(1L, savedVehicle.getId())
         );
 
-        mockMvc.perform(get("/api/cars/internal/getAll")
+        mockMvc.perform(post("/api/cars/internal/getAll")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestList)))
                 .andExpect(status().isOk())

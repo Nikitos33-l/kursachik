@@ -62,17 +62,17 @@ public class UserController {
         userService.addUser(userDto,userPrincipal);
     }
 
-    @GetMapping("/internal/get/orderInfo")
+    @PostMapping("/internal/get/orderInfo")
     public OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request){
         return userService.getInfoForOrder(request);
     }
 
-    @GetMapping("/internal/getAll/orderInfo")
+    @PostMapping("/internal/getAll/orderInfo")
     public Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request){
         return userService.getInfoForOrders(request);
     }
 
-    @GetMapping("/internal/validate-workers")
+    @PostMapping("/internal/validate-workers")
     public ValidationResponse validateWorkers(@RequestParam Set<UUID> ids){
         return userService.validateWorkers(ids);
     }

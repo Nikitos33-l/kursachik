@@ -173,7 +173,7 @@ class StationApiTest extends BaseIntegrationTests {
                 new RequestOrderMappingStationDto(555L, station.getId())
         );
 
-        mockMvc.perform(get("/api/stations/internal/getAll/by/station")
+        mockMvc.perform(post("/api/stations/internal/getAll/by/station")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestList)))
                 .andExpect(status().isOk())

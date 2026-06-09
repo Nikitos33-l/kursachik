@@ -14,11 +14,11 @@ import reactor.core.publisher.Mono;
 
 @Component
 @Slf4j
-public class AuthFilter extends AbstractGatewayFilterFactory<AuthFilter.Config> {
+public class AuthGatewayFilterFactory extends AbstractGatewayFilterFactory<AuthGatewayFilterFactory.Config> {
 
     private final SecurityServiceClient securityServiceClient;
 
-    public AuthFilter(SecurityServiceClient securityServiceClient) {
+    public AuthGatewayFilterFactory(SecurityServiceClient securityServiceClient) {
         super(Config.class);
         this.securityServiceClient = securityServiceClient;
     }

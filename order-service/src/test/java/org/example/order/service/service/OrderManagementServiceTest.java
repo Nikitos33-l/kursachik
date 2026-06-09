@@ -31,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -49,6 +50,7 @@ class OrderManagementServiceTest {
     @Mock private OrderItemMapper orderItemMapper;
     @Mock private StationServiceClient stationServiceClient;
     @Mock private StationIntegrationWrapper stationIntegrationWrapper;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private OrderManagementService orderManagementService;
@@ -121,13 +123,16 @@ class OrderManagementServiceTest {
         OrderStatus newStatus = new OrderStatus();
 
         when(userServiceClient.getOrCreateCar(any(CarRequestDto.class))).thenReturn(savedVehicle);
-
         when(stationIntegrationWrapper.getValidatedServices(eq(10L), anyList())).thenReturn(stationResponse);
-
         when(orderStatusRepository.findById("NEW")).thenReturn(Optional.of(newStatus));
+
+        Order savedOrderMock = mock(Order.class);
+        when(savedOrderMock.getId()).thenReturn(1L);
+        when(orderRepository.save(any(Order.class))).thenReturn(savedOrderMock);
 
         orderManagementService.createOrder(requestDto, principal);
 
+        // Проверка
         verify(orderRepository).save(any(Order.class));
     }
 

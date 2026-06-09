@@ -6,6 +6,7 @@ import org.example.station.service.api.common.dto.response.StationServicesRespon
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
@@ -14,10 +15,10 @@ import java.util.Map;
 @FeignClient(name = "station-service")
 public interface StationServiceClient {
 
-    @GetMapping("/api/stations/internal/getAll/by/station")
+    @PostMapping("/api/stations/internal/getAll/by/station")
     Map<Long, SummaryResponseStationDto> getStationsByOrders(@RequestBody List<RequestOrderMappingStationDto> request);
 
-    @GetMapping("/api/service/internal/{stationId}/validate")
+    @PostMapping("/api/service/internal/{stationId}/validate")
     StationServicesResponse validateStationAndGetServices(
             @PathVariable Long stationId,
             @RequestBody List<Long> serviceIds

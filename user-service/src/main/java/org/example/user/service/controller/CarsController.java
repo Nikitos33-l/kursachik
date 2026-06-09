@@ -16,7 +16,7 @@ import java.util.Map;
 public class CarsController {
     private final CarService carService;
 
-    @GetMapping("/internal/getAll")
+    @PostMapping("/internal/getAll")
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request){
         return carService.getVehiclesForOrders(request);
     }
