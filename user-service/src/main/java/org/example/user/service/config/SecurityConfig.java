@@ -26,8 +26,7 @@ public class SecurityConfig {
     private final CorsConfigurationSource corsConfigurationSource;
 
     @Bean
-    public SecurityFilterChain securityFilterChain
-            (HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -35,8 +34,15 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("api/user/internal/**").permitAll()
-                        .requestMatchers("api/cars/internal/**").permitAll()
+                        .requestMatchers("/api/user/internal/**").permitAll()
+                        .requestMatchers("/api/cars/internal/**").permitAll()
+
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
                         .anyRequest().authenticated()
                 )
 
@@ -44,5 +50,4 @@ public class SecurityConfig {
 
         return http.build();
     }
-
 }

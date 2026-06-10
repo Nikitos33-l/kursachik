@@ -17,13 +17,13 @@ import java.util.UUID;
 @FeignClient(name = "user-service")
 public interface UserServiceFeignClient {
 
-    @PostMapping("api/user/internal/get/orderInfo")
+    @PostMapping("/api/user/internal/get/orderInfo")
     OrderInfoFromUserServiceDto getOrderInfo(@RequestBody OrderUserMappingRequest request);
 
-    @PostMapping("api/user/internal/getAll/orderInfo")
+    @PostMapping("/api/user/internal/getAll/orderInfo")
     Map<Long,OrderInfoFromUserServiceDto> getOrdersInfo(@RequestBody List<OrderUserMappingRequest> request);
 
-    @PostMapping("api/cars/internal/getAll")
+    @PostMapping("/api/cars/internal/getAll")
     Map<Long, VehicleDto> getCarsInfo(@RequestBody List<OrderVehicleMappingRequest> request);
 
     @PostMapping("/api/user/internal/validate-workers")
