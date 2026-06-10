@@ -1,10 +1,20 @@
-    package org.example.security.service.dto.request;
+package org.example.security.service.dto.request;
 
-    import jakarta.validation.constraints.Email;
-    import jakarta.validation.constraints.NotBlank;
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 
-    public record RegisterRequest(
-            @NotBlank String name,
-            @Email @NotBlank String email,
-            @NotBlank String password
-    ) {}
+@Schema(description = "Запрос на регистрацию нового сотрудника/администратора")
+public record RegisterRequest(
+        @Schema(description = "Имя и фамилия сотрудника", example = "Иван Иванов", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank
+        String name,
+
+        @Schema(description = "Электронная почта (логин в системе)", example = "ivanov@stobackend.by", requiredMode = Schema.RequiredMode.REQUIRED)
+        @Email @NotBlank
+        String email,
+
+        @Schema(description = "Пароль для создания учетной записи", example = "Secret_123P", requiredMode = Schema.RequiredMode.REQUIRED)
+        @NotBlank
+        String password
+) {}

@@ -6,6 +6,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.example.security.service.api.common.dto.TokenValidationResultDto;
 import org.example.security.service.dto.response.TokenPair;
 import org.example.security.service.entity.User;
@@ -18,6 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.Key;
 import java.util.*;
 
+@Slf4j
 @Service
 public class JwtService {
 
@@ -40,6 +42,7 @@ public class JwtService {
     }
 
     public String createAccessToken(UUID userId, String email, String role, Long stationId) {
+        log.debug("Генерация Access Token для userId: {}, role: {}", userId, role);
         Map<String, Object> claims = new HashMap<>();
         claims.put("userId", userId.toString());
         claims.put("role", role);
@@ -56,6 +59,7 @@ public class JwtService {
     }
 
     public String createRefreshToken(String email) {
+        log.debug("Генерация Refresh Token для email: {}", email);
         return Jwts.builder()
                 .setSubject(email)
                 .setId(UUID.randomUUID().toString())
@@ -65,12 +69,13 @@ public class JwtService {
                 .compact();
     }
 
-    public TokenValidationResultDto validateToken(String token){
+    public TokenValidationResultDto validateToken(String token) {
         try {
             Claims claims = extractAllClaims(token);
 
             String userIdStr = claims.get("userId", String.class);
-            if(blacklistService.isUserBlacklisted(userIdStr)){
+            if (userIdStr != null && blacklistService.isUserBlacklisted(userIdStr)) {
+                log.warn("Валидация токена отклонена: Пользователь {} заблокирован в Redis", userIdStr);
                 return TokenValidationResultDto.invalid();
             }
             UUID userId = userIdStr != null ? UUID.fromString(userIdStr) : null;
@@ -80,8 +85,8 @@ public class JwtService {
             Long stationId = claims.get("stationId", Long.class);
 
             return new TokenValidationResultDto(true, userId, email, List.of(role), stationId);
-        }
-        catch (JwtException | IllegalArgumentException e){
+        } catch (JwtException | IllegalArgumentException e) {
+            log.debug("Токен не прошел валидацию: {}", e.getMessage());
             return TokenValidationResultDto.invalid();
         }
     }
@@ -92,12 +97,18 @@ public class JwtService {
             String jti = claims.getId();
             String email = claims.getSubject();
 
+            log.info("Запрос на ротацию токенов для субъекта: {}, JTI: {}", email, jti);
+
             if (blacklistService.isTokenRevoked(jti)) {
+                log.error("[КРИТИЧЕСКИЙ АЛЕРТ] ОБНАРУЖЕН ПОВТОРНЫЙ ИСПОЛЬЗОВАНИЕ REFRESH ТОКЕНА! JTI: {}, Email: {}. Возможная кража сессии фронтенда!", jti, email);
                 throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token has been revoked. Possible theft detected!");
             }
 
             User user = userRepository.findByEmail(email)
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists"));
+                    .orElseThrow(() -> {
+                        log.warn("Ротация токенов отклонена: Пользователь '{}' больше не существует в БД", email);
+                        return new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User no longer exists");
+                    });
 
             long remainingTime = Math.max(claims.getExpiration().getTime() - System.currentTimeMillis(), 0);
             blacklistService.blacklistToken(jti, remainingTime);
@@ -110,9 +121,11 @@ public class JwtService {
             );
             String newRefreshToken = createRefreshToken(user.getEmail());
 
+            log.info("Пара токенов для '{}' успешно обновлена. Старый JTI отправлен в блеклист", email);
             return new TokenPair(newAccessToken, newRefreshToken);
 
         } catch (JwtException | IllegalArgumentException e) {
+            log.warn("Не удалось выполнить ротацию токенов: невалидная структура JWT. Ошибка: {}", e.getMessage());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid refresh token");
         }
     }
