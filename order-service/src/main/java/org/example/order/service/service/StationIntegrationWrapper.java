@@ -1,5 +1,6 @@
 package org.example.order.service.service;
 
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.station.service.api.common.client.StationServiceClient;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.example.order.service.constant.CacheNames.*;
 
@@ -23,11 +25,23 @@ public class StationIntegrationWrapper {
 
     @Cacheable(
             value = STATION_VALIDATION_CACHE,
-            key = "'station:' + #stationId + ':services:' + #serviceIds.stream().sorted().toList().toString()"
+            key = "T(org.example.order.service.service.StationIntegrationWrapper).generateCacheKey(#stationId, #serviceIds)"
     )
+    @CircuitBreaker(name = "stationServiceBreaker")
     public StationServicesResponse getValidatedServices(Long stationId, List<Long> serviceIds) {
         log.info("[CACHE MISS] Запрос валидации услуг СТО ID: {} через Station Service (Feign)", stationId);
         return stationClient.validateStationAndGetServices(stationId, serviceIds);
+    }
+
+    public static String generateCacheKey(Long stationId, List<Long> serviceIds) {
+        if (serviceIds == null || serviceIds.isEmpty()) {
+            return "station:" + stationId + ":services:none";
+        }
+        String sortedIds = serviceIds.stream()
+                .sorted()
+                .map(Object::toString)
+                .collect(Collectors.joining(","));
+        return "station:" + stationId + ":services:[" + sortedIds + "]";
     }
 
     public void evictCache(Long stationId) {

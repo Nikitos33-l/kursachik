@@ -14,7 +14,7 @@ import java.time.Duration;
 import static org.example.order.service.constant.CacheNames.*;
 
 @Configuration
-@EnableCaching
+@EnableCaching(order = 1)
 public class RedisConfig {
 
     @Bean
