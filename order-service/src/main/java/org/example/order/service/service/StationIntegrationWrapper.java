@@ -10,6 +10,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Collections;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -27,10 +28,18 @@ public class StationIntegrationWrapper {
             value = STATION_VALIDATION_CACHE,
             key = "T(org.example.order.service.service.StationIntegrationWrapper).generateCacheKey(#stationId, #serviceIds)"
     )
-    @CircuitBreaker(name = "stationServiceBreaker")
+    @CircuitBreaker(name = "stationServiceBreaker", fallbackMethod = "getValidatedServicesFallback")
     public StationServicesResponse getValidatedServices(Long stationId, List<Long> serviceIds) {
         log.info("[CACHE MISS] Запрос валидации услуг СТО ID: {} через Station Service (Feign)", stationId);
         return stationClient.validateStationAndGetServices(stationId, serviceIds);
+    }
+
+
+    public StationServicesResponse getValidatedServicesFallback(Long stationId, List<Long> serviceIds, Throwable throwable) {
+        log.error("[FALLBACK] Не удалось провалидировать услуги для СТО ID: {}. Сервис недоступен. Причина: {}",
+                stationId, throwable.getMessage());
+
+        return new StationServicesResponse(false, Collections.emptyList());
     }
 
     public static String generateCacheKey(Long stationId, List<Long> serviceIds) {
