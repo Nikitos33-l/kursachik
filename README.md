@@ -2,29 +2,40 @@
 
 ```mermaid
 graph TD
-    Client[Client] -->|HTTP| Gateway[API Gateway]
+    Client[Client] -->|HTTP| Gateway[API Gateway :8080]
     
     subgraph Infrastructure
-        Eureka[Eureka]
-        Redis[Redis]
-        RabbitMQ[RabbitMQ]
+        Eureka[Discovery Server]
+        Redis[(Redis Cache & Rate Limiter)]
+        RabbitMQ[[RabbitMQ Message Broker]]
     end
 
     subgraph Services
-        Gateway -->|lb://| Security[Security Service]
-        Gateway -->|lb://| User[User Service]
-        Gateway -->|lb://| Order[Order Service]
-        Gateway -->|lb://| Station[Station Service]
+        Security[Security Service]
+        User[User Service]
+        Order[Order Service]
+        Station[Station Service]
     end
+
+    Security --> DB1[(PostgreSQL)]
+    User --> DB2[(PostgreSQL)]
+    Order --> DB3[(PostgreSQL)]
+    Station --> DB4[(PostgreSQL)]
+
+    Gateway -->|lb://| Security
+    Gateway -->|lb://| User
+    Gateway -->|lb://| Order
+    Gateway -->|lb://| Station
 
     Gateway <-->|Rate Limit| Redis
     Order -.->|Feign + CB| User
     Order -.->|Feign + CB| Station
     Order <-->|Cache| Redis
     
-    User -->|Events| RabbitMQ
-    Station -->|Events| RabbitMQ
-    RabbitMQ -->|DLQ| Order
+    Security -->|Event: User Registered| RabbitMQ
+    User -->|Events: user.deleted/updated| RabbitMQ
+    Station -->|Events: station.deleted/updated| RabbitMQ
+    RabbitMQ -->|Consumers + DLQ| Order
 ```
 3. Технологический стек (Tech Stack)
 
