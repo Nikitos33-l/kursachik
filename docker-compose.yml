@@ -1,6 +1,5 @@
 version: '3.8'
 
-# --- Шаблон общих переменных для всех Spring Boot сервисов ---
 x-spring-common-env: &spring-common-env
   SPRING_PROFILES_ACTIVE: dev
   SPRING_CONFIG_IMPORT: "optional:configserver:http://config-server:8888"
@@ -9,7 +8,7 @@ x-spring-common-env: &spring-common-env
   SPRING_CLOUD_CONFIG_PASSWORD: config_secure_password
   EUREKA_HOST: eureka-server
   RABBITMQ_HOST: rabbitmq
-  REDIS_HOST: redis # <-- Теперь Редис тоже доступен всем по умолчанию!
+  REDIS_HOST: redis
 
 services:
   rabbitmq:
