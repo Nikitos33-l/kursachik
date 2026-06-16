@@ -6,7 +6,7 @@ graph TD
     
     subgraph Infrastructure
         Eureka[Discovery Server]
-        Redis[(Redis Cache & Rate Limiter)]
+        Redis[(Shared Redis Cache)]
         RabbitMQ[[RabbitMQ Message Broker]]
     end
 
@@ -18,6 +18,7 @@ graph TD
     end
 
     Security --> DB1[(PostgreSQL)]
+    Security --> BL[("Blacklist (Redis/DB)")]
     User --> DB2[(PostgreSQL)]
     Order --> DB3[(PostgreSQL)]
     Station --> DB4[(PostgreSQL)]
@@ -30,7 +31,11 @@ graph TD
     Gateway <-->|Rate Limit| Redis
     Order -.->|Feign + CB| User
     Order -.->|Feign + CB| Station
-    Order <-->|Cache| Redis
+    
+    Security -->|Cache/Check| Redis
+    User -->|Cache| Redis
+    Order -->|Cache| Redis
+    Station -->|Cache| Redis
     
     Security -->|Event: User Registered| RabbitMQ
     User -->|Events: user.deleted/updated| RabbitMQ
