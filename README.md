@@ -25,7 +25,7 @@ graph TD
     User -->|Events| RabbitMQ
     Station -->|Events| RabbitMQ
     RabbitMQ -->|DLQ| Order
-
+```
 3. Технологический стек (Tech Stack)
 
 * **Core:** Java 21+, Spring Boot 3.x, Spring Data JPA
