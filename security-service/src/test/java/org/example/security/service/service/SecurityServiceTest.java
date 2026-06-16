@@ -10,10 +10,7 @@ import org.example.user.contracts.UserUpdateEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
+import org.mockito.*;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Optional;
@@ -46,10 +43,13 @@ class SecurityUserServiceTest {
     void shouldDeleteUserAndAddToBlacklist() {
         UUID userId = UUID.randomUUID();
 
+        when(userRepository.existsById(userId)).thenReturn(true);
+
         securityUserService.deleteUser(userId);
 
-        verify(userRepository, times(1)).deleteById(userId);
-        verify(blackListService, times(1)).blacklistUser(userId.toString());
+        verify(userRepository, Mockito.times(1)).existsById(userId);
+        verify(userRepository, Mockito.times(1)).deleteById(userId);
+        verify(blackListService, Mockito.times(1)).blacklistUser(userId.toString());
     }
 
     @Test

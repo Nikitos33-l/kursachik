@@ -10,10 +10,12 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
@@ -22,6 +24,7 @@ import java.util.UUID;
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class BaseIntegrationTest {
 
     @Autowired protected MockMvc mockMvc;
@@ -41,7 +44,9 @@ public class BaseIntegrationTest {
 
     @ServiceConnection
     @Container
-    protected static final RabbitMQContainer rabbitmq = new RabbitMQContainer("rabbitmq:3-management-alpine");
+    protected static final RabbitMQContainer rabbitmq = new RabbitMQContainer("rabbitmq:3-management-alpine")
+            .withExposedPorts(5672, 15672)
+            .waitingFor(Wait.forHttp("/").forPort(15672).forStatusCode(200));
 
     @BeforeEach
     void cleanUp() {
