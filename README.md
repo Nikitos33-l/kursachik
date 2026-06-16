@@ -2,31 +2,29 @@
 
 ```mermaid
 graph TD
-    Client[Клиент / Postman / UI] -->|HTTP Requests| Gateway[API Gateway :8080 <br>Spring Cloud Gateway]
+    Client[Client] -->|HTTP| Gateway[API Gateway]
     
-    subgraph Инфраструктура
-        Eureka[Discovery Server<br>Netflix Eureka]
-        Redis[(Кэш & Лимитер<br>Redis)]
-        RabbitMQ[[Брокер сообщений<br>RabbitMQ]]
-    </subgraph>
-
-    subgraph Микросервисы
-        Gateway -->|Синхронно / lb://| SecurityService[Security Service]
-        Gateway -->|Синхронно / lb://| UserService[User Service]
-        Gateway -->|Синхронно / lb://| OrderService[Order Service]
-        Gateway -->|Синхронно / lb://| StationService[Station Service]
+    subgraph Infrastructure
+        Eureka[Eureka]
+        Redis[Redis]
+        RabbitMQ[RabbitMQ]
     end
 
-    %% Взаимодействия
-    Gateway <-->|Rate Limiting & CB| Redis
-    OrderService -.->|Feign Client<br>Circuit Breaker| UserService
-    OrderService -.->|Feign Client<br>Circuit Breaker| StationService
-    OrderService <-->|Кэширование списков| Redis
+    subgraph Services
+        Gateway -->|lb://| Security[Security Service]
+        Gateway -->|lb://| User[User Service]
+        Gateway -->|lb://| Order[Order Service]
+        Gateway -->|lb://| Station[Station Service]
+    end
+
+    Gateway <-->|Rate Limit| Redis
+    Order -.->|Feign + CB| User
+    Order -.->|Feign + CB| Station
+    Order <-->|Cache| Redis
     
-    %% Асинхронный обмен
-    UserService -->|События: user.deleted / user.updated| RabbitMQ
-    StationService -->|События: station.deleted| RabbitMQ
-    RabbitMQ -->|Слушатели / DLQ| OrderService
+    User -->|Events| RabbitMQ
+    Station -->|Events| RabbitMQ
+    RabbitMQ -->|DLQ| Order
 
 3. Технологический стек (Tech Stack)
 
@@ -45,11 +43,9 @@ graph TD
 * **Distributed Caching & Eviction:** Оптимизация производительности за счет кэширования запросов в Redis. Реализован механизм инвалидации кэша (`evictCache`) при изменении данных.
 * **Reliable Messaging:** Асинхронная синхронизация сущностей (удаление/обновление пользователей и станций) через RabbitMQ. Использование **Dead Letter Queues (DLQ)** для изоляции проблемных сообщений.
 
-### 5. Быстрый запуск (Quick Start)
+5. Быстрый запуск (Quick Start)
 
 ```markdown
-### 🚀 Инструкция по запуску
-
 
 1. Клонируйте репозиторий
 2.Соберите jar-файлы всех микросервисов:
