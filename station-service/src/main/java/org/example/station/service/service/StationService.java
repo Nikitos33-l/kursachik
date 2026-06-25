@@ -12,14 +12,11 @@ import org.example.station.service.dto.request.RequestStationDto;
 import org.example.station.service.dto.response.ResponseStationDto;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.StationMapper;
-import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.StationRepository;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.Map;
@@ -33,7 +30,7 @@ public class StationService {
     private final GeocoderService geocoderService;
     private final StationMapper stationMapper;
     private final StationRepository stationRepository;
-    private final StationEventProducer stationEventProducer;
+    private final StationOutboxEventService outboxEventService;
 
     @Transactional
     @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
@@ -90,16 +87,10 @@ public class StationService {
     @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
     public void delete(Long id) {
         log.warn("Инициация удаления СТО ID: {}", id);
-        try {
-            stationRepository.deleteById(id);
-            runAfterCommit(() -> {
-                log.info("[POST-COMMIT] Транзакция удаления СТО ID: {} закоммичена. Публикация события в брокер", id);
-                stationEventProducer.publishUserDeletedEvent(id);
-            });
-        } catch (FeignException e) {
-            log.error("Каскадное удаление СТО ID: {} прервано. Ошибка вызова Feign-клиента user-service", id, e);
-            throw new RuntimeException("Не удалось удалить связанные сущности");
-        }
+        stationRepository.deleteById(id);
+        outboxEventService.saveStationDeleteEvent(id);
+        log.info("СТО ID: {} удалена из БД, событие удаления успешно сохранено в Outbox", id);
+
     }
 
     @Transactional(readOnly = true)
@@ -120,12 +111,4 @@ public class StationService {
                 map(RequestOrderMappingStationDto::stationId).collect(Collectors.toSet());
     }
 
-    private static void runAfterCommit(Runnable runnable) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                runnable.run();
-            }
-        });
-    }
 }

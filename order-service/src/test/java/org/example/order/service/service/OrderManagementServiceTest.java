@@ -18,7 +18,6 @@ import org.example.station.service.api.common.client.StationServiceClient;
 import org.example.station.service.api.common.dto.response.SummaryResponseStationDto;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
-import org.example.order.service.service.OrderManagementService;
 import org.example.user.api.client.UserServiceFeignClient;
 import org.example.user.api.requestDto.CarRequestDto;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
@@ -31,7 +30,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.cache.CacheManager;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -50,7 +49,10 @@ class OrderManagementServiceTest {
     @Mock private OrderItemMapper orderItemMapper;
     @Mock private StationServiceClient stationServiceClient;
     @Mock private StationIntegrationWrapper stationIntegrationWrapper;
-    @Mock private ApplicationEventPublisher eventPublisher;
+    @Mock private UserIntegrationWrapper userIntegrationWrapper;
+    @Mock private CacheManager cacheManager;
+
+    @Mock private OrderCommandService orderCommandService;
 
     @InjectMocks
     private OrderManagementService orderManagementService;
@@ -98,147 +100,6 @@ class OrderManagementServiceTest {
     }
 
     @Test
-    @DisplayName("updateStatus: Ошибка, если статус не найден")
-    void updateStatus_StatusNotFound() {
-        when(orderRepository.findById(anyLong())).thenReturn(Optional.of(createOrder(1L)));
-        when(orderStatusRepository.findById(anyString())).thenReturn(Optional.empty());
-
-        assertThrows(EntityNotFoundException.class,
-                () -> orderManagementService.updateStatus(1L, new RequestOrderStatusDto("INVALID")));
-    }
-
-    @Test
-    @DisplayName("createOrder: Успешное создание заказа")
-    void createOrder_Success() {
-        RequestVehicleDto vehicleDto = new RequestVehicleDto("BMW", "X5", "7777-7");
-        RequestOrderDto requestDto = new RequestOrderDto(vehicleDto, List.of(1L, 2L), 10L);
-
-        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
-
-        VehicleDto savedVehicle = new VehicleDto(vehicleId, "BMW", "X5", "7777-7");
-        StationServicesResponse stationResponse = new StationServicesResponse(true, List.of(
-                new ServiceDetailDto(1L, "Замена масла", new BigDecimal(50)),
-                new ServiceDetailDto(2L, "Диагностика", new BigDecimal(30))
-        ));
-        OrderStatus newStatus = new OrderStatus();
-
-        when(userServiceClient.getOrCreateCar(any(CarRequestDto.class))).thenReturn(savedVehicle);
-        when(stationIntegrationWrapper.getValidatedServices(eq(10L), anyList())).thenReturn(stationResponse);
-        when(orderStatusRepository.findById("NEW")).thenReturn(Optional.of(newStatus));
-
-        Order savedOrderMock = mock(Order.class);
-        when(savedOrderMock.getId()).thenReturn(1L);
-        when(orderRepository.save(any(Order.class))).thenReturn(savedOrderMock);
-
-        orderManagementService.createOrder(requestDto, principal);
-
-        // Проверка
-        verify(orderRepository).save(any(Order.class));
-    }
-
-    @Test
-    @DisplayName("createOrder: Ошибка, если станция не найдена или не оказывает услуги")
-    void createOrder_StationNotFound() {
-        RequestOrderDto requestDto = new RequestOrderDto(new RequestVehicleDto("A", "B", "C"), List.of(1L), 99L);
-
-        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
-
-        when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(vehicleId, "A", "B", "C"));
-
-        when(stationIntegrationWrapper.getValidatedServices(anyLong(), anyList()))
-                .thenReturn(new StationServicesResponse(false, List.of()));
-
-        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
-                () -> orderManagementService.createOrder(requestDto, principal));
-        assertEquals("Станция не найдена", exception.getMessage());
-        verify(orderRepository, never()).save(any());
-    }
-
-    @Test
-    @DisplayName("updateStatus: Успешное обновление статуса")
-    void updateStatus_Success() {
-        Long orderId = 1L;
-        Order order = createOrder(orderId);
-        OrderStatus newStatus = new OrderStatus();
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
-        when(orderStatusRepository.findById("IN_PROGRESS")).thenReturn(Optional.of(newStatus));
-
-        orderManagementService.updateStatus(orderId, new RequestOrderStatusDto("IN_PROGRESS"));
-
-        assertEquals(newStatus, order.getStatus());
-    }
-
-    @Test
-    @DisplayName("updateOrder: Успешное обновление с очисткой работников")
-    void updateOrder_ClearWorkers_Success() {
-        Long orderId = 1L;
-        Order order = createOrder(orderId);
-        OrderStatus currentStatus = createStatus();
-        Order spyOrder = spy(order);
-        doReturn(currentStatus).when(spyOrder).getStatus();
-
-        PutOrderRequestDto requestDto = new PutOrderRequestDto(Collections.emptySet(),"COMPLETED");
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(spyOrder));
-        when(orderStatusRepository.findById("COMPLETED")).thenReturn(Optional.of(currentStatus));
-
-        orderManagementService.updateOrder(requestDto, orderId);
-
-        verify(spyOrder).clearWorkers();
-        verify(userServiceClient, never()).validateWorkers(any());
-    }
-
-    @Test
-    @DisplayName("updateOrder: Успешная замена работников")
-    void updateOrder_ReplaceWorkers_Success() {
-        Long orderId = 1L;
-        Order order = createOrder(orderId);
-        order.setWorkerIds(new HashSet<>(Set.of(workerId)));
-
-        OrderStatus status = createStatus();
-        Order spyOrder = spy(order);
-        doReturn(status).when(spyOrder).getStatus();
-
-        UUID newWorker1 = UUID.randomUUID();
-        UUID newWorker2 = UUID.randomUUID();
-        Set<UUID> newWorkers = Set.of(newWorker1, newWorker2);
-        PutOrderRequestDto requestDto = new PutOrderRequestDto(newWorkers,"COMPLETED");
-
-        ValidationResponse validationResponse = new ValidationResponse(true, Map.of(
-                newWorker1, "worker1@test.com",
-                newWorker2, "worker2@test.com"
-        ));
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(spyOrder));
-        when(orderStatusRepository.findById("COMPLETED")).thenReturn(Optional.of(status));
-        when(userServiceClient.validateWorkers(newWorkers)).thenReturn(validationResponse);
-
-        orderManagementService.updateOrder(requestDto, orderId);
-
-        verify(spyOrder).replaceWorkers(newWorkers, validationResponse.emails());
-    }
-
-    @Test
-    @DisplayName("updateOrder: Ошибка, если переданные работники не существуют")
-    void updateOrder_WorkersNotFound() {
-        Long orderId = 1L;
-        Order order = createOrder(orderId);
-        OrderStatus status = createStatus();
-        Order spyOrder = spy(order);
-        doReturn(status).when(spyOrder).getStatus();
-
-        Set<UUID> invalidWorkers = Set.of(UUID.randomUUID());
-        PutOrderRequestDto requestDto = new PutOrderRequestDto(invalidWorkers,"COMPLETED");
-
-        when(orderRepository.findById(orderId)).thenReturn(Optional.of(spyOrder));
-        when(orderStatusRepository.findById("COMPLETED")).thenReturn(Optional.of(status));
-        when(userServiceClient.validateWorkers(invalidWorkers)).thenReturn(new ValidationResponse(false, Map.of()));
-
-        assertThrows(EntityNotFoundException.class,
-                () -> orderManagementService.updateOrder(requestDto, orderId));
-    }
-
-    @Test
     @DisplayName("findWorkerOrder: Возврат пустого списка, если заказов нет")
     void findWorkerOrder_Empty() {
         UserPrincipal principal = new UserPrincipal(workerId, "worker@test.com", 1L, List.of());
@@ -266,15 +127,11 @@ class OrderManagementServiceTest {
         SummaryResponseStationDto stationDto = new SummaryResponseStationDto(stationId, "СТО на Немиге", "Минск");
 
         when(orderRepository.findAllByClientId(clientId)).thenReturn(List.of(order));
-
         when(userServiceClient.getCarsInfo(anyList())).thenReturn(Map.of(vehicleId, vehicleDto));
         when(stationServiceClient.getStationsByOrders(anyList())).thenReturn(Map.of(stationId, stationDto));
 
         ResponseOrderSummaryDto expectedSummary = new ResponseOrderSummaryDto(
-                vehicleDto,
-                List.of(),
-                "NEW",
-                stationDto.name()
+                vehicleDto, List.of(), "NEW", stationDto.name()
         );
 
         when(orderMapper.toResponseOrderSummaryDto(eq(order), eq(vehicleDto), eq(stationDto), anyList()))
@@ -286,9 +143,146 @@ class OrderManagementServiceTest {
         assertEquals(expectedSummary, result.get(0));
     }
 
-    private OrderStatus createStatus(){
+    @Test
+    @DisplayName("createOrder: Успешная сборка данных из Feign и делегирование сохранения")
+    void createOrder_Success() {
+        RequestVehicleDto vehicleDto = new RequestVehicleDto("BMW", "X5", "7777-7");
+        RequestOrderDto requestDto = new RequestOrderDto(vehicleDto, List.of(1L, 2L), 10L);
+        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
+
+        VehicleDto savedVehicle = new VehicleDto(vehicleId, "BMW", "X5", "7777-7");
+        StationServicesResponse stationResponse = new StationServicesResponse(true, List.of(
+                new ServiceDetailDto(1L, "Замена масла", new BigDecimal(50)),
+                new ServiceDetailDto(2L, "Диагностика", new BigDecimal(30))
+        ));
+
+        when(userServiceClient.getOrCreateCar(any(CarRequestDto.class))).thenReturn(savedVehicle);
+        when(stationIntegrationWrapper.getValidatedServices(eq(10L), anyList())).thenReturn(stationResponse);
+
+        orderManagementService.createOrder(requestDto, principal);
+
+        verify(orderCommandService).saveNewOrder(
+                eq(10L), eq(principal), eq(savedVehicle), eq(stationResponse.services())
+        );
+    }
+
+    @Test
+    @DisplayName("createOrder: Ошибка, если интеграционный враппер не нашел станцию")
+    void createOrder_StationNotFound() {
+        RequestOrderDto requestDto = new RequestOrderDto(new RequestVehicleDto("A", "B", "C"), List.of(1L), 99L);
+        UserPrincipal principal = new UserPrincipal(clientId, "test@test.com", 1L, List.of());
+
+        when(userServiceClient.getOrCreateCar(any())).thenReturn(new VehicleDto(vehicleId, "A", "B", "C"));
+        when(stationIntegrationWrapper.getValidatedServices(anyLong(), anyList()))
+                .thenReturn(new StationServicesResponse(false, List.of()));
+
+        EntityNotFoundException exception = assertThrows(EntityNotFoundException.class,
+                () -> orderManagementService.createOrder(requestDto, principal));
+
+        assertEquals("Станция не найдена", exception.getMessage());
+        verifyNoInteractions(orderCommandService);
+    }
+
+    @Test
+    @DisplayName("updateStatus: Успешный запрос email и делегирование смены статуса")
+    void updateStatus_Success() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+        order.setStatus(createStatus("NEW"));
+        String clientEmail = "client@test.com";
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(userIntegrationWrapper.getEmailByUserId(order.getClientId())).thenReturn(clientEmail);
+
+        orderManagementService.updateStatus(orderId, new RequestOrderStatusDto("IN_PROGRESS"));
+
+        verify(userIntegrationWrapper).getEmailByUserId(order.getClientId());
+        verify(orderCommandService).updateOrderStatus(orderId, "IN_PROGRESS", clientEmail);
+    }
+
+    @Test
+    @DisplayName("updateStatus: Должен прервать операцию, если целевой статус совпадает с текущим")
+    void updateStatus_NoOpIfStatusMatches() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+        order.setStatus(createStatus("IN_PROGRESS"));
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        orderManagementService.updateStatus(orderId, new RequestOrderStatusDto("IN_PROGRESS"));
+
+        verifyNoInteractions(userIntegrationWrapper);
+        verifyNoInteractions(orderCommandService);
+    }
+
+    @Test
+    @DisplayName("updateOrder: Успешное обновление без изменения статуса и с очисткой мастеров")
+    void updateOrder_ClearWorkers_Success() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+        order.setStatus(createStatus("COMPLETED"));
+
+        PutOrderRequestDto requestDto = new PutOrderRequestDto(Collections.emptySet(), "COMPLETED");
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        orderManagementService.updateOrder(requestDto, orderId);
+
+        verifyNoInteractions(userIntegrationWrapper);
+        verifyNoInteractions(userServiceClient);
+        verify(orderCommandService).updateOrderDetails(
+                eq(orderId), eq("COMPLETED"), eq(false), eq(null), eq(Collections.emptySet()), eq(null)
+        );
+    }
+
+    @Test
+    @DisplayName("updateOrder: Успешная валидация новых мастеров, запрос email и передача в CommandService")
+    void updateOrder_ReplaceWorkers_Success() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+        order.setStatus(createStatus("NEW"));
+
+        UUID newWorker = UUID.randomUUID();
+        Set<UUID> newWorkers = Set.of(newWorker);
+        PutOrderRequestDto requestDto = new PutOrderRequestDto(newWorkers, "COMPLETED");
+
+        ValidationResponse validationResponse = new ValidationResponse(true, Map.of(newWorker, "worker@test.com"));
+        String clientEmail = "client@test.com";
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(userIntegrationWrapper.getEmailByUserId(order.getClientId())).thenReturn(clientEmail);
+        when(userServiceClient.validateWorkers(newWorkers)).thenReturn(validationResponse);
+
+        orderManagementService.updateOrder(requestDto, orderId);
+
+        verify(userIntegrationWrapper).getEmailByUserId(order.getClientId());
+        verify(userServiceClient).validateWorkers(newWorkers);
+        verify(orderCommandService).updateOrderDetails(
+                eq(orderId), eq("COMPLETED"), eq(true), eq(clientEmail), eq(newWorkers), eq(validationResponse)
+        );
+    }
+
+    @Test
+    @DisplayName("updateOrder: Ошибка, если Feign-клиент не подтвердил существование мастеров")
+    void updateOrder_WorkersNotFound() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+        order.setStatus(createStatus("NEW"));
+
+        Set<UUID> invalidWorkers = Set.of(UUID.randomUUID());
+        PutOrderRequestDto requestDto = new PutOrderRequestDto(invalidWorkers, "COMPLETED");
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+        when(userServiceClient.validateWorkers(invalidWorkers)).thenReturn(new ValidationResponse(false, Map.of()));
+
+        assertThrows(EntityNotFoundException.class,
+                () -> orderManagementService.updateOrder(requestDto, orderId));
+
+        verifyNoInteractions(orderCommandService);
+    }
+
+    private OrderStatus createStatus(String code) {
         OrderStatus status = new OrderStatus();
-        status.setId("NEW");
+        status.setId(code);
         return status;
     }
 
@@ -297,7 +291,7 @@ class OrderManagementServiceTest {
         order.setId(id);
         order.setClientId(clientId);
         order.setWorkerIds(new HashSet<>(Set.of(workerId)));
-        order.setVehicleId(vehicleId); // Снова Long
+        order.setVehicleId(vehicleId);
         order.setOrderItems(new ArrayList<>());
         return order;
     }
@@ -306,18 +300,13 @@ class OrderManagementServiceTest {
         return new OrderInfoFromUserServiceDto(
                 new UserDto(clientId, "client@test.com", "Client Name"),
                 List.of(new UserDto(workerId, "worker@test.com", "Worker Name")),
-                new VehicleDto(vehicleId, "BMW", "X5", "7777-7") // Снова Long
+                new VehicleDto(vehicleId, "BMW", "X5", "7777-7")
         );
     }
 
     private ResponseOrderDto createResponseDto(Long id, String status, OrderInfoFromUserServiceDto info) {
         return new ResponseOrderDto(
-                id,
-                status,
-                info.getVehicle(),
-                info.getClient(),
-                info.getWorkers(),
-                List.of()
+                id, status, info.getVehicle(), info.getClient(), info.getWorkers(), List.of()
         );
     }
 }

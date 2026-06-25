@@ -9,7 +9,6 @@ import org.example.station.service.dto.response.ResponseServiceDto;
 import org.example.station.service.entity.Service;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.ServiceMapper;
-import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.ServiceRepository;
 import org.example.station.service.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,8 +36,8 @@ class ServiceManagementServiceTest {
     @Mock private ServiceMapper serviceMapper;
     @Mock private StationService stationService;
     @Mock private StationRepository stationRepository;
-    @Mock private StationEventProducer stationEventProducer;
     @Mock private ServiceCacheRepository serviceCacheRepository;
+    @Mock private StationOutboxEventService outboxEventService;
 
     @InjectMocks
     private ServiceManagementService serviceManagementService;
@@ -121,7 +120,7 @@ class ServiceManagementServiceTest {
     }
 
     @Test
-    @DisplayName("Успешное обновление услуги с инвалидацией кэша и отправкой события")
+    @DisplayName("Успешное обновление услуги с инвалидацией кэша и сохранением события в Outbox")
     void update_Success() {
         RequestServiceDto dto = new RequestServiceDto("Premium Wash", BigDecimal.valueOf(150));
         when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(sampleService));
@@ -131,12 +130,13 @@ class ServiceManagementServiceTest {
         assertEquals("Premium Wash", sampleService.getName());
         assertEquals(BigDecimal.valueOf(150), sampleService.getPrice());
 
+        // Проверяем сброс кэша и фиксацию в Outbox таблицу
         verify(serviceCacheRepository, times(1)).evictCache(stationId);
-        verify(stationEventProducer, times(1)).sendStationServicesUpdatedEvent(stationId);
+        verify(outboxEventService, times(1)).saveStationServicesUpdatedEvent(stationId);
     }
 
     @Test
-    @DisplayName("Успешное добавление услуги и сброс кэша станции")
+    @DisplayName("Успешное добавление услуги и сброс кэша станции (без Outbox, так как в сервисе его нет)")
     void add_Success() {
         RequestServiceDto dto = new RequestServiceDto("Dry Cleaning", BigDecimal.valueOf(300));
         UserPrincipal principal = mock(UserPrincipal.class);
@@ -150,10 +150,12 @@ class ServiceManagementServiceTest {
 
         verify(serviceRepository, times(1)).save(newService);
         verify(serviceCacheRepository, times(1)).evictCache(stationId);
+        // Метод add не вызывает outboxEventService по текущей логике сервиса
+        verifyNoInteractions(outboxEventService);
     }
 
     @Test
-    @DisplayName("Успешное удаление услуги с вызовом репозитория и триггером события")
+    @DisplayName("Успешное удаление услуги с вызовом репозитория и сохранением события в Outbox")
     void delete_Success() {
         when(serviceRepository.findById(serviceId)).thenReturn(Optional.of(sampleService));
 
@@ -161,7 +163,7 @@ class ServiceManagementServiceTest {
 
         verify(serviceRepository, times(1)).delete(sampleService);
         verify(serviceCacheRepository, times(1)).evictCache(stationId);
-        verify(stationEventProducer, times(1)).sendStationServicesUpdatedEvent(stationId);
+        verify(outboxEventService, times(1)).saveStationServicesUpdatedEvent(stationId);
     }
 
     @Test

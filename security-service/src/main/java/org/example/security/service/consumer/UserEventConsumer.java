@@ -1,5 +1,6 @@
 package org.example.security.service.consumer;
 
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.security.service.service.SecurityUserService;
@@ -24,6 +25,8 @@ public class UserEventConsumer {
         try {
             userService.createUser(event);
             log.debug("[RABBITMQ CONSUMER] Событие 'USER_CREATED' для UUID {} успешно обработано", event.id());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("[RABBITMQ CONSUMER] Конфликт данных: Email '{}' уже занят в системе. Пропускаем создание для UUID {}", event.email(), event.id());
         } catch (Exception e) {
             log.error("[RABBITMQ CONSUMER] Ошибка при обработке 'USER_CREATED' для UUID {}: {}", event.id(), e.getMessage(), e);
             throw e;
@@ -36,6 +39,8 @@ public class UserEventConsumer {
         try {
             userService.updateUser(event);
             log.debug("[RABBITMQ CONSUMER] Событие 'USER_UPDATED' для UUID {} успешно обработано", event.id());
+        } catch (EntityNotFoundException e) {
+            log.error("[RABBITMQ CONSUMER] Логическая ошибка: Попытка обновить несуществующего пользователя UUID {}. Сообщение пропущено.", event.id());
         } catch (Exception e) {
             log.error("[RABBITMQ CONSUMER] Ошибка при обработке 'USER_UPDATED' для UUID {}: {}", event.id(), e.getMessage(), e);
             throw e;

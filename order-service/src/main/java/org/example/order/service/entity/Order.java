@@ -4,10 +4,8 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.example.order.service.event.OrderStatusChangeEvent;
 import org.example.order.service.event.WorkerAssignmentEvent;
 import org.hibernate.annotations.BatchSize;
-import org.springframework.data.domain.AbstractAggregateRoot;
 
 import java.util.*;
 
@@ -16,7 +14,7 @@ import java.util.*;
 @Setter
 @Getter
 @NoArgsConstructor
-public class Order extends AbstractAggregateRoot<Order> {
+public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name="orders_id")
@@ -27,7 +25,6 @@ public class Order extends AbstractAggregateRoot<Order> {
 
     @ManyToOne
     @JoinColumn(name="status", nullable = false)
-    @Setter(lombok.AccessLevel.NONE)
     private OrderStatus status;
 
     @Column(name = "station_id")
@@ -46,48 +43,28 @@ public class Order extends AbstractAggregateRoot<Order> {
     @BatchSize(size = 20)
     private Set<UUID> workerIds = new HashSet<>();
 
-    public void setStatus(OrderStatus status){
-        this.status = status;
-        if (this.id != null) {
-            registerEvent(new OrderStatusChangeEvent(this.getId(), status, this.clientId, null));
-        }
-    }
-
-    public void setStatus(OrderStatus status, String email) {
-        this.status = status;
-        if (this.id != null) {
-            registerEvent(new OrderStatusChangeEvent(this.id, status, this.clientId, email));
-        }
-    }
-
-    public void replaceWorkers(Set<UUID> newWorkerIds, Map<UUID, String> workerEmails) {
+    public List<WorkerAssignmentEvent> replaceWorkers(Set<UUID> newWorkerIds, Map<UUID, String> workerEmails) {
         Set<UUID> currentIds = new HashSet<>(this.workerIds);
+        List<WorkerAssignmentEvent> eventsToPublish = new ArrayList<>();
 
         for (UUID oldId : currentIds) {
             if (!newWorkerIds.contains(oldId)) {
-                deleteWorker(oldId);
+                this.workerIds.remove(oldId);
             }
         }
 
         for (UUID newId : newWorkerIds) {
             if (!currentIds.contains(newId)) {
+                this.workerIds.add(newId);
                 String email = workerEmails.get(newId);
-                addWorker(newId, email);
+                eventsToPublish.add(new WorkerAssignmentEvent(this.getId(), email));
             }
         }
+
+        return eventsToPublish;
     }
 
     public void clearWorkers() {
         this.workerIds.clear();
-    }
-
-    private void addWorker(UUID workerId, String email) {
-        if (this.workerIds.add(workerId)) {
-            registerEvent(new WorkerAssignmentEvent(this.getId(), email));
-        }
-    }
-
-    private void deleteWorker(UUID workerId) {
-        this.workerIds.remove(workerId);
     }
 }

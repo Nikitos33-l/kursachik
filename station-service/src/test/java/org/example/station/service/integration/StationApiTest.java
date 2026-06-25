@@ -1,5 +1,6 @@
 package org.example.station.service.integration;
 
+import org.awaitility.Awaitility;
 import org.example.station.service.api.common.dto.request.RequestOrderMappingStationDto;
 import org.example.station.service.dto.AddressCoordinate;
 import org.example.station.service.dto.request.RequestStationDto;
@@ -7,6 +8,7 @@ import org.example.station.service.entity.Station;
 import org.example.station.service.service.GeocoderService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -14,6 +16,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
@@ -145,7 +148,7 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("DELETE /api/stations/delete/{id}: Полная проверка удаления и отправки сообщения в RabbitMQ")
+    @DisplayName("DELETE /api/stations/delete/{id}: Полная проверка удаления и асинхронной отправки сообщения в RabbitMQ")
     void shouldDeleteStationAndVerifyRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Удаляемая станция", "Адрес");
         Long deletedId = station.getId();
@@ -157,11 +160,11 @@ class StationApiTest extends BaseIntegrationTests {
 
         assertThat(stationRepository.findById(deletedId)).isEmpty();
 
-        verify(rabbitTemplate, timeout(2000)).convertAndSend(
-                eq(stationExchange),
-                eq(stationDeletedRoutingKey),
-                eq(deletedId)
-        );
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> verify(rabbitTemplate).send(
+                        eq(stationExchange), eq(stationDeletedRoutingKey), any(Message.class)
+                ));
     }
 
     @Test
@@ -190,5 +193,4 @@ class StationApiTest extends BaseIntegrationTests {
                 .build();
         return stationRepository.save(station);
     }
-
 }

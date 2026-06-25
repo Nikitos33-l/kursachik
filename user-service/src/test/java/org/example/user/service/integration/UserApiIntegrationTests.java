@@ -10,10 +10,11 @@ import org.example.user.service.entity.User;
 import org.example.user.service.entity.Vehicle;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.util.List;
 import java.util.Set;
@@ -22,14 +23,18 @@ import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserApiIntegrationTests extends BaseIntegrationTest {
 
-    @Autowired
-    private RabbitTemplate rabbitTemplate;
+    @MockitoSpyBean
+    protected RabbitTemplate rabbitTemplate;
 
     @Value("${user.queue.registration}")
     private String registrationQueue;
@@ -40,7 +45,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     private final UUID authUserId = UUID.randomUUID();
 
     @Test
-    @DisplayName("Успешное получение всех пользователей админом")
+    @DisplayName("Успешное получение всех пользователей станций админом")
     void shouldGetAllUsersForAdmin() throws Exception {
         createAndSaveTestUser(100L, "Ivan");
 
@@ -62,7 +67,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Успешное удаление пользователя")
+    @DisplayName("Успешное удаление пользователя с проверкой Outbox и брокера")
     void shouldDeleteUser() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Oleg");
 
@@ -71,10 +76,16 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         assertThat(userRepository.findById(savedUser.getId())).isEmpty();
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    verify(rabbitTemplate, atLeastOnce()).send(anyString(), anyString(), any(Message.class));
+                });
     }
 
     @Test
-    @DisplayName("Успешное добавление нового пользователя супер-админом")
+    @DisplayName("Успешное добавление нового пользователя супер-админом с проверкой Outbox и брокера")
     void shouldAddUserBySuperAdmin() throws Exception {
         createAndSaveRole("ADMIN");
 
@@ -87,10 +98,16 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(status().isOk());
 
         assertThat(userRepository.findAll()).hasSize(1);
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    verify(rabbitTemplate, atLeastOnce()).send(anyString(), anyString(), any(Message.class));
+                });
     }
 
     @Test
-    @DisplayName("При добавлении пользователя обычным ADMIN-ом, stationId должен браться из заголовка ADMIN-а")
+    @DisplayName("При добавлении пользователя обычным ADMIN-ом, stationId берется из заголовка (с проверкой Outbox/Broker)")
     void shouldAddUserByAdminUsingAdminsStationId() throws Exception {
         createAndSaveRole("WORKER");
 
@@ -105,6 +122,12 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         List<User> users = userRepository.findAll();
         assertThat(users).hasSize(1);
         assertThat(users.get(0).getWorkplaceId()).isEqualTo(100L);
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    verify(rabbitTemplate, atLeastOnce()).send(anyString(), anyString(), any(Message.class));
+                });
     }
 
     @Test
@@ -123,7 +146,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Ошибка 400 при обновлении пользователя с невалидными данными")
+    @DisplayName("Ошибка 400 при更新 пользователя с невалидными данными")
     void shouldReturnBadRequestOnInvalidUpdate() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Anna");
 
@@ -165,7 +188,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         User savedUser = createAndSaveTestUser(100L, "Ivan");
 
         mockMvc.perform(get("/api/user/get/info/{id}", savedUser.getId())
-                        .headers(getSecurityHeaders("ROLE_ADMIN",100L,authUserId))
+                        .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name").value("Ivan"))
@@ -173,7 +196,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Успешное обновление данных пользователя (валидный сценарий)")
+    @DisplayName("Успешное обновление данных пользователя с проверкой Outbox и брокера")
     void shouldUpdateUserSuccessfully() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "OldName");
 
@@ -188,6 +211,12 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
         User updatedUser = userRepository.findById(savedUser.getId()).orElseThrow();
         assertThat(updatedUser.getName()).isEqualTo("NewName");
         assertThat(updatedUser.getEmail()).isEqualTo("newemail@mail.com");
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    verify(rabbitTemplate, atLeastOnce()).send(anyString(), anyString(), any(Message.class));
+                });
     }
 
     @Test
@@ -246,22 +275,25 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                 .andExpect(jsonPath("$.emails.['" + worker1.getId() + "']").value("worker1@mail.com"))
                 .andExpect(jsonPath("$.emails.['" + worker2.getId() + "']").value("worker2@mail.com"));
     }
+
     @Test
     @DisplayName("RabbitMQ: Успешная обработка события регистрации пользователя (UserEventConsumer)")
     void shouldHandleUserRegisterEvent() throws InterruptedException {
         createAndSaveRole("WORKER");
         UUID newUserId = UUID.randomUUID();
+
         UserRegisterEvent event = new UserRegisterEvent(newUserId, "rabbit@mail.com", "RabbitWorker", "hash", "WORKER", 99L);
 
         rabbitTemplate.convertAndSend(registrationQueue, event);
 
-        Awaitility.await().atMost(5, TimeUnit.SECONDS).
-                pollInterval(200,TimeUnit.MILLISECONDS)
-                .untilAsserted(()->{
-                    assertThat(userRepository.findById(newUserId)).isPresent();
-                    assertThat(userRepository.findById(newUserId).get().getName()).isEqualTo("RabbitWorker");
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    User user = userRepository.findById(newUserId).orElse(null);
+                    assertThat(user).isNotNull();
+                    assertThat(user.getName()).isEqualTo("RabbitWorker");
+                    assertThat(user.getEmail()).isEqualTo("rabbit@mail.com");
                 });
-
     }
 
     @Test
@@ -272,9 +304,9 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
 
-        Awaitility.await().atMost(5,TimeUnit.SECONDS).
-                pollInterval(200,TimeUnit.MILLISECONDS).
-                untilAsserted(()->{
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
                     List<User> remainingUsers = userRepository.findAll();
                     assertThat(remainingUsers).hasSize(1);
                     assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());

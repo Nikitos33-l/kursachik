@@ -21,7 +21,7 @@ public record RequestAddUserDto(
         String password,
 
         @NotBlank
-        @Schema(description = "Системная роль пользователя", example = "MECHANIC", allowableValues = {"ADMIN", "MECHANIC", "CLIENT"})
+        @Schema(description = "Системная роль пользователя", example = "WORKER", allowableValues = {"ADMIN", "WORKER"})
         String role,
 
         @Schema(description = "Идентификатор СТО, к которой привязан сотрудник", example = "10", nullable = true)

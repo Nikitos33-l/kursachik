@@ -6,7 +6,6 @@ import org.example.security.service.dto.request.RegisterRequest;
 import org.example.security.service.dto.response.TokenPair;
 import org.example.security.service.entity.Role;
 import org.example.security.service.entity.User;
-import org.example.security.service.producer.UserEventProducer;
 import org.example.security.service.repository.RoleRepository;
 import org.example.security.service.repository.UserRepository;
 import org.example.user.contracts.UserRegisterEvent;
@@ -16,13 +15,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-
 import java.util.Optional;
 import java.util.UUID;
 
@@ -37,7 +32,7 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
     @Mock private RoleRepository roleRepository;
     @Mock private JwtService jwtService;
-    @Mock private UserEventProducer userEventProducer;
+    @Mock private UserOutboxService userOutboxService;
 
     @InjectMocks
     private AuthService authService;
@@ -98,7 +93,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("Успешная регистрация и отправка события")
+    @DisplayName("Успешная регистрация и сохранение события в Outbox")
     void register_Success() {
         RegisterRequest request = new RegisterRequest("New User", "new@mail.com", "pass");
 
@@ -109,24 +104,13 @@ class AuthServiceTest {
         when(jwtService.createAccessToken(any(UUID.class), eq("new@mail.com"), eq("CLIENT"), isNull())).thenReturn("access");
         when(jwtService.createRefreshToken(anyString())).thenReturn("refresh");
 
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        TokenPair result = authService.register(request);
 
-            tsmMock.when(() -> TransactionSynchronizationManager.registerSynchronization(any(TransactionSynchronization.class)))
-                    .thenAnswer(invocation -> {
-                        TransactionSynchronization sync = invocation.getArgument(0);
-                        sync.afterCommit();
-                        return null;
-                    });
+        assertNotNull(result);
+        assertEquals("access", result.accessToken());
 
-            TokenPair result = authService.register(request);
-
-            assertNotNull(result);
-            assertEquals("access", result.accessToken());
-
-            verify(userRepository).save(any(User.class));
-            verify(userEventProducer).publishUserRegisterEvent(any(UserRegisterEvent.class));
-        }
+        verify(userRepository).save(any(User.class));
+        verify(userOutboxService).saveRegisterEvent(any(UserRegisterEvent.class));
     }
 
     @Test
