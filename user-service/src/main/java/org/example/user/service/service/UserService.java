@@ -2,7 +2,7 @@ package org.example.user.service.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j; // Добавили импорт логгера
+import lombok.extern.slf4j.Slf4j;
 import org.example.securitycommon.UserPrincipal;
 import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
@@ -21,7 +21,6 @@ import org.example.user.service.entity.User;
 import org.example.user.service.entity.Vehicle;
 import org.example.user.service.mapper.UserMapper;
 import org.example.user.service.mapper.VehicleMapper;
-import org.example.user.service.producer.UserEventProducer;
 import org.example.user.service.repository.RoleRepository;
 import org.example.user.service.repository.UserRepository;
 import org.example.user.service.repository.VehicleRepository;
@@ -33,8 +32,6 @@ import org.springframework.cache.annotation.Caching;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,8 +47,8 @@ public class UserService {
     private final VehicleRepository vehicleRepository;
     private final VehicleMapper vehicleMapper;
     private final CarService carService;
-    private final UserEventProducer userEventProducer;
     private final CacheManager cacheManager;
+    private final UserOutboxService userOutboxService;
 
     @Transactional(readOnly = true)
     @Cacheable(value = CacheNames.USERS_CACHE, key = "#stationId")
@@ -168,10 +165,8 @@ public class UserService {
 
         evictStationCaches(stationId, roleName);
 
-        runAfterCommit(() -> {
-            log.info("Транзакция коммита удаления завершена. Отправка события UserDeletedEvent для ID: {}", id);
-            userEventProducer.publishUserDeletedEvents(id);
-        });
+        userOutboxService.saveDeleteEvent(id);
+        log.info("Событие удаления пользователя ID: {} успешно сохранено в Outbox", id);
     }
 
     @Transactional
@@ -186,10 +181,8 @@ public class UserService {
             checkUserExists(userDto.email());
             UserUpdateEvent message = new UserUpdateEvent(id, userDto.email().trim());
 
-            runAfterCommit(() -> {
-                log.info("Транзакция коммита обновления завершена. Отправка события UserUpdateEvent для ID: {}", id);
-                userEventProducer.publishUserUpdateEvents(message);
-            });
+            userOutboxService.saveUpdateEvent(message);
+            log.info("Событие обновления email для пользователя ID: {} успешно сохранено в Outbox", id);
         }
 
         user.setEmail(userDto.email().trim());
@@ -208,8 +201,7 @@ public class UserService {
 
     @Transactional
     public void addUser(RequestAddUserDto userDto, UserPrincipal userPrincipal) {
-        log.info("Запрос на добавление нового пользователя администратором. Email: {}, Роль: {}"
-                , userDto.email(), userDto.role());
+        log.info("Запрос на добавление нового пользователя администратором. Email: {}, Роль: {}", userDto.email(), userDto.role());
 
         checkUserExists(userDto.email());
         Role role = getRoleByName(userDto.role());
@@ -232,10 +224,8 @@ public class UserService {
 
         evictStationCaches(stationId, role.getName());
 
-        runAfterCommit(() -> {
-            log.info("Транзакция коммита создания завершена. Отправка события UserCreatedEvent для ID: {}", user.getId());
-            userEventProducer.publishUserCreatedEvents(message);
-        });
+        userOutboxService.saveCreateEvent(message);
+        log.info("Событие создания пользователя ID: {} успешно сохранено в Outbox", user.getId());
     }
 
     @Transactional
@@ -293,15 +283,6 @@ public class UserService {
         log.warn("ВНИМАНИЕ: Запущено каскадное удаление всех пользователей для СТО ID: {}", id);
         userRepository.deleteAllByWorkplaceId(id);
         log.info("Все пользователи для СТО ID: {} успешно удалены", id);
-    }
-
-    private static void runAfterCommit(Runnable runnable) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                runnable.run();
-            }
-        });
     }
 
     private void evictStationCaches(Long stationId, String roleName) {

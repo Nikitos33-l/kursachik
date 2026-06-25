@@ -9,7 +9,6 @@ import org.example.station.service.dto.request.RequestStationDto;
 import org.example.station.service.dto.response.ResponseStationDto;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.StationMapper;
-import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.StationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -17,10 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -38,7 +34,7 @@ class StationServiceTest {
     @Mock private GeocoderService geocoderService;
     @Mock private StationMapper stationMapper;
     @Mock private StationRepository stationRepository;
-    @Mock private StationEventProducer stationEventProducer;
+    @Mock private StationOutboxEventService outboxEventService;
 
     @InjectMocks
     private StationService stationService;
@@ -77,7 +73,6 @@ class StationServiceTest {
     @Test
     @DisplayName("Успешное получение списка всех станций")
     void findAll_Success() {
-        // В ResponseStationDto порядок: id, longitude, latitude, name, address
         ResponseStationDto responseDto = new ResponseStationDto(
                 stationId, defaultLon, defaultLat, "Main Station", "Minsk, Lenina 1"
         );
@@ -155,36 +150,25 @@ class StationServiceTest {
     }
 
     @Test
-    @DisplayName("Успешное удаление станции и отправка события в RabbitMQ")
+    @DisplayName("Успешное удаление станции и сохранение события в Outbox")
     void delete_Success() {
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        stationService.delete(stationId);
 
-            tsmMock.when(() -> TransactionSynchronizationManager.registerSynchronization(any(TransactionSynchronization.class)))
-                    .thenAnswer(invocation -> {
-                        TransactionSynchronization sync = invocation.getArgument(0);
-                        sync.afterCommit();
-                        return null;
-                    });
-
-            stationService.delete(stationId);
-
-            verify(stationRepository, times(1)).deleteById(stationId);
-            verify(stationEventProducer, times(1)).publishUserDeletedEvent(stationId);
-        }
+        verify(stationRepository, times(1)).deleteById(stationId);
+        verify(outboxEventService, times(1)).saveStationDeleteEvent(stationId);
     }
 
     @Test
-    @DisplayName("Ошибка при удалении: перехват FeignException")
-    void delete_ThrowsFeignException() {
-        FeignException mockFeignException = mock(FeignException.class);
-        doThrow(mockFeignException).when(stationRepository).deleteById(stationId);
+    @DisplayName("Ошибка при удалении: прерывание транзакции и отмена сохранения в Outbox")
+    void delete_ThrowsException() {
+        RuntimeException mockException = new RuntimeException("Имитация ошибки базы данных");
+        doThrow(mockException).when(stationRepository).deleteById(stationId);
 
         RuntimeException exception = assertThrows(RuntimeException.class,
                 () -> stationService.delete(stationId));
 
-        assertEquals("Не удалось удалить связанные сущности", exception.getMessage());
-        verify(stationEventProducer, never()).publishUserDeletedEvent(any());
+        assertEquals("Имитация ошибки базы данных", exception.getMessage());
+        verify(outboxEventService, never()).saveStationDeleteEvent(any());
     }
 
     @Test

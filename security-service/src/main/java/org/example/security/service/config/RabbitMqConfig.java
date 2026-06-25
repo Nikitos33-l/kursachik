@@ -1,5 +1,6 @@
 package org.example.security.service.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.Queue;
@@ -125,8 +126,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    MessageConverter jsonMessageConverter() {
-        return new Jackson2JsonMessageConverter();
+    MessageConverter jsonMessageConverter(ObjectMapper objectMapper) {
+        return new Jackson2JsonMessageConverter(objectMapper);
     }
 
 }

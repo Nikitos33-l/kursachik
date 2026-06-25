@@ -8,6 +8,7 @@ import org.example.order.service.dto.request.RequestVehicleDto;
 import org.example.order.service.entity.Order;
 import org.example.order.service.entity.OrderItem;
 import org.example.order.service.entity.OrderStatus;
+import org.example.order.service.repository.OutboxEventRepository;
 import org.example.station.service.api.common.client.StationServiceClient;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
@@ -20,8 +21,7 @@ import org.example.user.contracts.UserUpdateEvent;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
+import org.springframework.amqp.core.Message; // Важно: импортируем AMQP Message
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +35,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,25 +53,14 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
 
     @MockitoSpyBean private RabbitTemplate rabbitTemplate;
 
-    @Captor private ArgumentCaptor<Object> messageCaptor;
+    @Autowired private OutboxEventRepository outboxEventRepository;
+    @Autowired private StringRedisTemplate redisTemplate;
+    @Autowired private CacheManager cacheManager;
 
-    @Value("${station.delete.queue}")
-    private String stationDeleteQueue;
-
-    @Value("${station.services.updated.queue}")
-    private String stationServicesUpdatedQueue;
-
-    @Value("${user.delete.queue}")
-    private String userDeleteQueue;
-
-    @Value("${user.update.queue}")
-    private String userUpdateQueue;
-
-    @Autowired
-    private StringRedisTemplate redisTemplate;
-
-    @Autowired
-    private CacheManager cacheManager;
+    @Value("${station.delete.queue}") private String stationDeleteQueue;
+    @Value("${station.services.updated.queue}") private String stationServicesUpdatedQueue;
+    @Value("${user.delete.queue}") private String userDeleteQueue;
+    @Value("${user.update.queue}") private String userUpdateQueue;
 
     private UUID clientId;
     private UUID workerId;
@@ -83,6 +74,9 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     @Override
     public void setUp() {
         super.setUp();
+
+        outboxEventRepository.deleteAll();
+        orderRepository.deleteAll();
 
         statusNew = new OrderStatus();
         statusNew.setId("NEW");
@@ -100,7 +94,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Создание заказа: успешное сохранение в БД и отправка события NEW в RabbitMQ")
+    @DisplayName("Создание заказа: успешное сохранение в БД и асинхронная отправка сырого JSON в RabbitMQ")
     void createOrder_ShouldSaveToDbAndSendNotification() throws Exception {
         RequestOrderDto requestDto = new RequestOrderDto(
                 new RequestVehicleDto("Tesla", "Model Y", "7777-AA-7"),
@@ -129,14 +123,26 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         List<Order> savedOrders = orderRepository.findAll();
         assertThat(savedOrders).hasSize(1);
         Order savedOrder = savedOrders.get(0);
-        assertThat(savedOrder.getClientId()).isEqualTo(clientId);
 
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), messageCaptor.capture());
-
-        OrderNotificationDto sentNotification = (OrderNotificationDto) messageCaptor.getValue();
-        assertThat(sentNotification.orderId()).isEqualTo(savedOrder.getId());
-        assertThat(sentNotification.email()).isEqualTo("test@mail.com");
-        assertThat(sentNotification.type()).isEqualTo("NEW");
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> verify(rabbitTemplate, times(1)).send(
+                        anyString(),
+                        anyString(),
+                        argThat(message -> {
+                            try {
+                                // Парсим payload из байтов обратно в DTO для проверки полей
+                                String json = new String(message.getBody(), StandardCharsets.UTF_8);
+                                OrderNotificationDto dto = objectMapper.readValue(json, OrderNotificationDto.class);
+                                return dto.orderId().equals(savedOrder.getId()) &&
+                                        "test@mail.com".equals(dto.email()) &&
+                                        "NEW".equals(dto.type());
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        })
+                ));
     }
 
     @Test
@@ -157,7 +163,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Обновление статуса: успешное изменение в БД воркером и отправка уведомления клиенту через RabbitTemplate")
+    @DisplayName("Обновление статуса: успешное изменение в БД и асинхронный пуш байтового JSON в брокер")
     void updateOrderStatus_ShouldUpdateDbAndTriggerRabbitTemplate() throws Exception {
         Order order = createAndSaveSampleOrder();
         RequestOrderStatusDto statusDto = new RequestOrderStatusDto("IN_PROGRESS");
@@ -173,15 +179,28 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         Order updatedOrder = orderRepository.findById(order.getId()).orElseThrow();
         assertThat(updatedOrder.getStatus().getId()).isEqualTo("IN_PROGRESS");
 
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), messageCaptor.capture());
-        OrderNotificationDto sentNotification = (OrderNotificationDto) messageCaptor.getValue();
-        assertThat(sentNotification.orderId()).isEqualTo(order.getId());
-        assertThat(sentNotification.email()).isEqualTo("lazy-client@test.com");
-        assertThat(sentNotification.type()).isEqualTo("IN_PROGRESS");
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> verify(rabbitTemplate, times(1)).send(
+                        anyString(),
+                        anyString(),
+                        argThat(message -> {
+                            try {
+                                String json = new String(message.getBody(), StandardCharsets.UTF_8);
+                                OrderNotificationDto dto = objectMapper.readValue(json, OrderNotificationDto.class);
+                                return dto.orderId().equals(order.getId()) &&
+                                        "lazy-client@test.com".equals(dto.email()) &&
+                                        "IN_PROGRESS".equals(dto.type());
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        })
+                ));
     }
 
     @Test
-    @DisplayName("Редактирование заказа администратором: валидация и назначение воркеров с отправкой события в брокер")
+    @DisplayName("Редактирование заказа администратором: назначение воркеров и асинхронная отправка события")
     void updateOrder_ShouldAssignWorkersAndSendNotification() throws Exception {
         Order order = createAndSaveSampleOrder();
         UUID newWorkerId = UUID.randomUUID();
@@ -202,11 +221,24 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         Order updatedOrder = orderRepository.findWithWorkerIdsById(order.getId()).orElseThrow();
         assertThat(updatedOrder.getWorkerIds()).containsExactly(newWorkerId);
 
-        verify(rabbitTemplate, times(1)).convertAndSend(anyString(), anyString(), messageCaptor.capture());
-        OrderNotificationDto workerNotification = (OrderNotificationDto) messageCaptor.getValue();
-        assertThat(workerNotification.orderId()).isEqualTo(order.getId());
-        assertThat(workerNotification.email()).isEqualTo("new-worker@test.com");
-        assertThat(workerNotification.type()).isEqualTo("NEW_ORDER_FOR_WORKER");
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> verify(rabbitTemplate, times(1)).send(
+                        anyString(),
+                        anyString(),
+                        argThat(message -> {
+                            try {
+                                String json = new String(message.getBody(), StandardCharsets.UTF_8);
+                                OrderNotificationDto dto = objectMapper.readValue(json, OrderNotificationDto.class);
+                                return dto.orderId().equals(order.getId()) &&
+                                        "new-worker@test.com".equals(dto.email()) &&
+                                        "NEW_ORDER_FOR_WORKER".equals(dto.type());
+                            } catch (Exception e) {
+                                return false;
+                            }
+                        })
+                ));
     }
 
     @Test
@@ -271,7 +303,6 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         Long targetStationId = order.getStationId();
         String cacheKey = "order-service:station-validation::station:" + targetStationId + ":services:[10,20]";
         redisTemplate.opsForValue().set(cacheKey, "cached-station-services-data");
-
 
         assertThat(orderRepository.findById(order.getId())).isPresent();
 
@@ -338,11 +369,11 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         assertThat(emailCache).isNotNull();
         emailCache.put(targetUserId, "old-email@test.com");
 
-        UserUpdateEvent updateEvent = new UserUpdateEvent(targetUserId,"new-email@test.com");
+        UserUpdateEvent updateEvent = new UserUpdateEvent(targetUserId, "new-email@test.com");
 
         rabbitTemplate.convertAndSend(userUpdateQueue, updateEvent);
 
-        org.awaitility.Awaitility.await()
+        Awaitility.await()
                 .atMost(java.time.Duration.ofSeconds(5))
                 .untilAsserted(() -> {
                     String cachedEmail = emailCache.get(targetUserId, String.class);

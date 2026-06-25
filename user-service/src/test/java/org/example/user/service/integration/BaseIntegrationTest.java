@@ -1,6 +1,7 @@
 package org.example.user.service.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.example.user.service.repository.OutboxEventRepository;
 import org.example.user.service.repository.RoleRepository;
 import org.example.user.service.repository.UserRepository;
 import org.example.user.service.repository.VehicleRepository;
@@ -9,19 +10,24 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpHeaders;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.containers.RabbitMQContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @SpringBootTest
 @Testcontainers
 @AutoConfigureMockMvc
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 public class BaseIntegrationTest {
 
     @Autowired protected MockMvc mockMvc;
@@ -29,6 +35,8 @@ public class BaseIntegrationTest {
     @Autowired protected UserRepository userRepository;
     @Autowired protected RoleRepository roleRepository;
     @Autowired protected VehicleRepository vehicleRepository;
+    @Autowired protected CacheManager cacheManager;
+    @Autowired protected OutboxEventRepository outboxEventRepository;
 
     @ServiceConnection
     @Container
@@ -41,13 +49,21 @@ public class BaseIntegrationTest {
 
     @ServiceConnection
     @Container
-    protected static final RabbitMQContainer rabbitmq = new RabbitMQContainer("rabbitmq:3-management-alpine");
+    protected static final RabbitMQContainer rabbitmq = new RabbitMQContainer("rabbitmq:3-management-alpine")
+            .withExposedPorts(5672, 15672)
+            .waitingFor(Wait.forHttp("/").forPort(15672).forStatusCode(200));
 
     @BeforeEach
     void cleanUp() {
+        outboxEventRepository.deleteAll();
         vehicleRepository.deleteAll();
         userRepository.deleteAll();
         roleRepository.deleteAll();
+
+        cacheManager.getCacheNames().stream()
+                .map(cacheManager::getCache)
+                .filter(Objects::nonNull)
+                .forEach(org.springframework.cache.Cache::clear);
     }
 
     protected HttpHeaders getSecurityHeaders(String role, Long stationId, UUID userId) {

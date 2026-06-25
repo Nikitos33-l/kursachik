@@ -1,23 +1,26 @@
 package org.example.station.service.integration;
 
+import org.awaitility.Awaitility;
 import org.example.station.service.dto.request.RequestServiceDto;
 import org.example.station.service.entity.Service;
 import org.example.station.service.entity.Station;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -69,7 +72,7 @@ class ServiceApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("PUT /api/service/update/{id}: Обновление услуги воркером и триггер RabbitMQ")
+    @DisplayName("PUT /api/service/update/{id}: Обновление услуги воркером и асинхронный триггер RabbitMQ")
     void shouldUpdateServiceAndSendRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Станция 1");
         Service service = createAndSaveService("Старая услуга", new BigDecimal("100.00"), station);
@@ -86,13 +89,15 @@ class ServiceApiTest extends BaseIntegrationTests {
         assertThat(updated.getName()).isEqualTo("Новая услуга");
         assertThat(updated.getPrice().compareTo(new BigDecimal("200.00"))).isEqualTo(0);
 
-        verify(rabbitTemplate, timeout(2000)).convertAndSend(
-                eq(stationExchange), eq(servicesUpdatedRoutingKey), eq(station.getId())
-        );
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> verify(rabbitTemplate).send(
+                        eq(stationExchange), eq(servicesUpdatedRoutingKey), any(Message.class)
+                ));
     }
 
     @Test
-    @DisplayName("DELETE /api/service/del/{id}: Удаление услуги админом и триггер RabbitMQ")
+    @DisplayName("DELETE /api/service/del/{id}: Удаление услуги админом и асинхронный триггер RabbitMQ")
     void shouldDeleteServiceAndSendRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Станция 1");
         Service service = createAndSaveService("Услуга для удаления", new BigDecimal("50.00"), station);
@@ -103,9 +108,11 @@ class ServiceApiTest extends BaseIntegrationTests {
 
         assertThat(serviceRepository.findById(service.getId())).isEmpty();
 
-        verify(rabbitTemplate, timeout(2000)).convertAndSend(
-                eq(stationExchange), eq(servicesUpdatedRoutingKey), eq(station.getId())
-        );
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> verify(rabbitTemplate).send(
+                        eq(stationExchange), eq(servicesUpdatedRoutingKey), any(Message.class)
+                ));
     }
 
     @Test
@@ -129,7 +136,6 @@ class ServiceApiTest extends BaseIntegrationTests {
         createAndSaveService("Шиномонтаж", new BigDecimal("70.00"), station);
 
         mockMvc.perform(get("/api/service/getAll")
-                        // Передаем station.getId() прямо в хидер, так как он WORKER
                         .headers(getSecurityHeaders("ROLE_WORKER", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

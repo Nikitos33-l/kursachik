@@ -19,7 +19,11 @@ public class UserIntegrationWrapper {
 
     private final UserServiceFeignClient userServiceFeignClient;
 
-    @Cacheable(value = USER_EMAIL_CACHE, key = "#clientId")
+    @Cacheable(
+            value = USER_EMAIL_CACHE,
+            key = "#clientId",
+            unless = "#result == 'Данные email временно недоступны'"
+    )
     @CircuitBreaker(name = "userServiceBreaker", fallbackMethod = "getEmailByUserIdFallback")
     public String getEmailByUserId(UUID clientId) {
         log.info("[CACHE MISS] Запрос email для пользователя UUID: {} через User Service REST API", clientId);

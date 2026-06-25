@@ -26,7 +26,9 @@ public class StationIntegrationWrapper {
 
     @Cacheable(
             value = STATION_VALIDATION_CACHE,
-            key = "T(org.example.order.service.service.StationIntegrationWrapper).generateCacheKey(#stationId, #serviceIds)"
+            key = "T(org.example.order.service.service.StationIntegrationWrapper).generateCacheKey(#stationId, #serviceIds)",
+            unless = "!#result.stationExists"
+
     )
     @CircuitBreaker(name = "stationServiceBreaker", fallbackMethod = "getValidatedServicesFallback")
     public StationServicesResponse getValidatedServices(Long stationId, List<Long> serviceIds) {

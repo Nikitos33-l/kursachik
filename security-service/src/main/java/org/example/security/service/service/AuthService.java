@@ -7,7 +7,6 @@ import org.example.security.service.dto.request.LoginRequest;
 import org.example.security.service.dto.request.RegisterRequest;
 import org.example.security.service.dto.response.TokenPair;
 import org.example.security.service.entity.User;
-import org.example.security.service.producer.UserEventProducer;
 import org.example.security.service.repository.RoleRepository;
 import org.example.security.service.repository.UserRepository;
 import org.example.user.contracts.UserRegisterEvent;
@@ -15,8 +14,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -29,7 +26,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final RoleRepository roleRepository;
     private final JwtService jwtService;
-    private final UserEventProducer userEventProducer;
+    private final UserOutboxService userOutboxService;
 
     @Transactional
     public TokenPair login(LoginRequest request) {
@@ -74,29 +71,17 @@ public class AuthService {
                 });
         user.setRole(clientRole);
 
-        UserRegisterEvent userRegisterEvent = new UserRegisterEvent(
-                user.getId(), user.getEmail(), request.name(), user.getPassword(), clientRole.getName(), null
-        );
-
-        runAfterCommit(() -> {
-            log.info("[POST-COMMIT] Транзакция регистрации зафиксирована для UUID: {}. Отправка события в брокер", user.getId());
-            userEventProducer.publishUserRegisterEvent(userRegisterEvent);
-        });
 
         userRepository.save(user);
         log.info("Профиль пользователя (UUID: {}) успешно сохранен в БД со статусом CLIENT", user.getId());
 
+        UserRegisterEvent event = new UserRegisterEvent(user.getId(),user.getEmail(),request.name(), user.getPassword(), clientRole.getName(),user.getWorkplaceId());
+
+        userOutboxService.saveRegisterEvent(event);
+
         return generateTokenPair(user.getId(), user.getEmail(), "CLIENT", null);
     }
 
-    private static void runAfterCommit(Runnable runnable) {
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                runnable.run();
-            }
-        });
-    }
 
     private TokenPair generateTokenPair(UUID userId, String email, String role, Long stationId) {
         log.debug("Генерация новой пары токенов для {}", email);

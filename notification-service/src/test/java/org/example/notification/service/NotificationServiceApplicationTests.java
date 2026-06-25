@@ -14,16 +14,19 @@ import org.springframework.boot.testcontainers.service.connection.ServiceConnect
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest
 @Testcontainers
@@ -33,6 +36,11 @@ class NotificationServiceApplicationTests {
     @ServiceConnection
     @Container
     public static RabbitMQContainer rabbitMQContainer = new RabbitMQContainer("rabbitmq:3-management-alpine");
+
+    @ServiceConnection
+    @Container
+    public static GenericContainer<?> redisContainer = new GenericContainer<>(DockerImageName.parse("redis:7-alpine"))
+            .withExposedPorts(6379);
 
     @Autowired
     private RabbitTemplate rabbitTemplate;
@@ -49,8 +57,12 @@ class NotificationServiceApplicationTests {
         String targetEmail = "car-owner@mail.com";
         Long orderId = 555L;
         Request requestPayload = new Request(targetEmail, orderId, OrderNotificationType.IN_PROGRESS);
+        String messageId = UUID.randomUUID().toString();
 
-        rabbitTemplate.convertAndSend(notificationQueue, requestPayload);
+        rabbitTemplate.convertAndSend(notificationQueue, (Object) requestPayload, message -> {
+            message.getMessageProperties().setMessageId(messageId);
+            return message;
+        });
 
         ArgumentCaptor<SimpleMailMessage> messageCaptor = ArgumentCaptor.forClass(SimpleMailMessage.class);
 
@@ -58,16 +70,42 @@ class NotificationServiceApplicationTests {
                 .atMost(Duration.ofSeconds(5))
                 .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> {
-                    verify(mailSender).send(messageCaptor.capture());
+                    verify(mailSender, times(1)).send(messageCaptor.capture());
 
                     SimpleMailMessage sentMessage = messageCaptor.getValue();
-
                     assertThat(sentMessage.getTo()).containsExactly(targetEmail);
                     assertThat(sentMessage.getSubject()).isEqualTo("Заказ в работе");
 
                     String expectedText = String.format(OrderNotificationType.IN_PROGRESS.getTemplate(), orderId);
                     assertThat(sentMessage.getText()).isEqualTo(expectedText);
-                    assertThat(sentMessage.getText()).contains("555");
+                });
+    }
+
+    @Test
+    @DisplayName("Интеграционный тест: дедупликация повторного сообщения через Redis")
+    void shouldIgnoreDuplicateMessageViaRedisIdempotency() {
+        String targetEmail = "duplicate-check@mail.com";
+        Request requestPayload = new Request(targetEmail, 777L, OrderNotificationType.NEW);
+        String sameMessageId = UUID.randomUUID().toString();
+
+        rabbitTemplate.convertAndSend(notificationQueue, (Object) requestPayload, message -> {
+            message.getMessageProperties().setMessageId(sameMessageId);
+            return message;
+        });
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> verify(mailSender, times(1)).send(any(SimpleMailMessage.class)));
+
+        rabbitTemplate.convertAndSend(notificationQueue, (Object) requestPayload, message -> {
+            message.getMessageProperties().setMessageId(sameMessageId);
+            return message;
+        });
+
+        Awaitility.await()
+                .during(Duration.ofSeconds(2))
+                .untilAsserted(() -> {
+                    verify(mailSender, times(1)).send(any(SimpleMailMessage.class));
                 });
     }
 
@@ -75,13 +113,17 @@ class NotificationServiceApplicationTests {
     @DisplayName("Интеграционный тест: валидация некорректного email в очереди")
     void shouldFailValidationWhenEmailIsInvalid() {
         Request invalidRequest = new Request("invalid-email-format", 123L, OrderNotificationType.NEW);
+        String messageId = UUID.randomUUID().toString();
 
-        rabbitTemplate.convertAndSend(notificationQueue, invalidRequest);
+        rabbitTemplate.convertAndSend(notificationQueue, (Object) invalidRequest, message -> {
+            message.getMessageProperties().setMessageId(messageId);
+            return message;
+        });
 
         Awaitility.await()
                 .during(Duration.ofSeconds(2))
                 .untilAsserted(() -> {
-                    verify(mailSender, org.mockito.Mockito.never()).send(any(SimpleMailMessage.class));
+                    verify(mailSender, never()).send(any(SimpleMailMessage.class));
                 });
     }
 }

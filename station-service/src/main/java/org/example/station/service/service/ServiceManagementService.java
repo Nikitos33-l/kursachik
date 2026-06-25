@@ -12,7 +12,6 @@ import org.example.station.service.dto.response.ResponseServiceDto;
 import org.example.station.service.entity.Service;
 import org.example.station.service.entity.Station;
 import org.example.station.service.mapper.ServiceMapper;
-import org.example.station.service.producer.StationEventProducer;
 import org.example.station.service.repository.ServiceRepository;
 import org.example.station.service.repository.StationRepository;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,8 +27,9 @@ public class ServiceManagementService {
     private final ServiceMapper serviceMapper;
     private final StationService stationService;
     private final StationRepository stationRepository;
-    private final StationEventProducer stationEventProducer;
     private final ServiceCacheRepository serviceCacheRepository;
+    private final StationOutboxEventService outboxEventService;
+
 
     @Transactional(readOnly = true)
     public List<ResponseServiceDto> findAll(Long stationId, UserPrincipal userPrincipal) {
@@ -37,6 +37,9 @@ public class ServiceManagementService {
                 .anyMatch(a -> Objects.equals(a.getAuthority(), "ROLE_USER"));
 
         Long targetStationId = isUser ? stationId : userPrincipal.stationId();
+        if (targetStationId == null) {
+            throw new IllegalArgumentException("Необходимо указать ID станции для получения списка услуг");
+        }
         log.debug("Запрос списка услуг. Инициатор: {}, Выбранный СТО ID: {}", userPrincipal.email(), targetStationId);
 
         return serviceCacheRepository.getServicesByStationId(targetStationId);
@@ -58,8 +61,10 @@ public class ServiceManagementService {
         Long stationId = service.getStation().getId();
 
         serviceCacheRepository.evictCache(stationId);
-        stationEventProducer.sendStationServicesUpdatedEvent(stationId);
-        log.info("Услуга ID: {} успешно обновлена. Кэш сброшен, событие отправлено в брокер", id);
+
+        outboxEventService.saveStationServicesUpdatedEvent(stationId);
+
+        log.info("Услуга ID: {} успешно обновлена. Кэш сброшен, событие изменения прайс-листа сохранено в Outbox", id);
     }
 
     private Service getServiceById(Long id) {
@@ -79,8 +84,10 @@ public class ServiceManagementService {
         serviceRepository.delete(service);
 
         serviceCacheRepository.evictCache(stationId);
-        stationEventProducer.sendStationServicesUpdatedEvent(stationId);
-        log.info("Услуга ID: {} успешно удалена. Кэш СТО {} очищен", id, stationId);
+
+        outboxEventService.saveStationServicesUpdatedEvent(stationId);
+
+        log.info("Услуга ID: {} успешно удалена. Кэш СТО {} очищен, событие изменения сохранено в Outbox", id, stationId);
     }
 
     @Transactional

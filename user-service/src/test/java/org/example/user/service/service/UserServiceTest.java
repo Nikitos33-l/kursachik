@@ -6,7 +6,9 @@ import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.api.responceDto.OrderInfoFromUserServiceDto;
 import org.example.user.api.responceDto.UserDto;
 import org.example.user.api.responceDto.ValidationResponse;
+import org.example.user.contracts.UserCreatedEvent;
 import org.example.user.contracts.UserRegisterEvent;
+import org.example.user.contracts.UserUpdateEvent;
 import org.example.user.service.constant.CacheNames;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
@@ -17,7 +19,6 @@ import org.example.user.service.entity.User;
 import org.example.user.service.entity.Vehicle;
 import org.example.user.service.mapper.UserMapper;
 import org.example.user.service.mapper.VehicleMapper;
-import org.example.user.service.producer.UserEventProducer;
 import org.example.user.service.repository.RoleRepository;
 import org.example.user.service.repository.UserRepository;
 import org.example.user.service.repository.VehicleRepository;
@@ -27,13 +28,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.*;
 
@@ -51,9 +50,9 @@ public class UserServiceTest {
     @Mock private VehicleRepository vehicleRepository;
     @Mock private VehicleMapper vehicleMapper;
     @Mock private CarService carService;
-    @Mock private UserEventProducer userEventProducer;
     @Mock private CacheManager cacheManager;
     @Mock private Cache cache;
+    @Mock private UserOutboxService userOutboxService;
 
     @InjectMocks
     private UserService userService;
@@ -121,20 +120,16 @@ public class UserServiceTest {
     }
 
     @Test
-    @DisplayName("Успешное удаление пользователя с очисткой кэша")
+    @DisplayName("Успешное удаление пользователя с очисткой кэша и записью в Outbox")
     void deleteUser_Success() {
         when(userRepository.findById(userId)).thenReturn(Optional.of(sampleUser));
         when(cacheManager.getCache(anyString())).thenReturn(cache);
 
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        userService.deleteUser(userId);
 
-            userService.deleteUser(userId);
-
-            verify(userRepository, times(1)).delete(sampleUser);
-            verify(cache, times(2)).evict(1L); // Сбросит USERS_CACHE и WORKERS_CACHE
-            tsmMock.verify(() -> TransactionSynchronizationManager.registerSynchronization(any()), times(1));
-        }
+        verify(userRepository, times(1)).delete(sampleUser);
+        verify(cache, times(2)).evict(1L); // Для USERS_CACHE и WORKERS_CACHE
+        verify(userOutboxService, times(1)).saveDeleteEvent(userId); // Проверяем Outbox
     }
 
     @Test
@@ -145,15 +140,12 @@ public class UserServiceTest {
         when(userRepository.existsByEmail("new@mail.com")).thenReturn(false);
         when(cacheManager.getCache(anyString())).thenReturn(cache);
 
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        userService.updateUser(userId, updateDto);
 
-            userService.updateUser(userId, updateDto);
-
-            assertEquals("new@mail.com", sampleUser.getEmail());
-            assertEquals("New Name", sampleUser.getName());
-            verify(cache, times(2)).evict(1L);
-        }
+        assertEquals("new@mail.com", sampleUser.getEmail());
+        assertEquals("New Name", sampleUser.getName());
+        verify(cache, times(2)).evict(1L);
+        verify(userOutboxService, times(1)).saveUpdateEvent(any(UserUpdateEvent.class)); // Проверяем Outbox
     }
 
     @Test
@@ -258,13 +250,10 @@ public class UserServiceTest {
         when(passwordEncoder.encode(anyString())).thenReturn("hash");
         when(cacheManager.getCache(anyString())).thenReturn(cache);
 
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        userService.addUser(dto, principal);
 
-            userService.addUser(dto, principal);
-
-            verify(userRepository).save(argThat(user -> user.getWorkplaceId().equals(99L)));
-        }
+        verify(userRepository).save(argThat(user -> user.getWorkplaceId().equals(99L)));
+        verify(userOutboxService, times(1)).saveCreateEvent(any(UserCreatedEvent.class)); // Проверяем Outbox
     }
 
     @Test
@@ -279,13 +268,10 @@ public class UserServiceTest {
         when(roleRepository.findByName(anyString())).thenReturn(Optional.of(workerRole));
         when(cacheManager.getCache(anyString())).thenReturn(cache);
 
-        try (MockedStatic<TransactionSynchronizationManager> tsmMock = mockStatic(TransactionSynchronizationManager.class)) {
-            tsmMock.when(TransactionSynchronizationManager::isSynchronizationActive).thenReturn(true);
+        userService.addUser(dto, principal);
 
-            userService.addUser(dto, principal);
-
-            verify(userRepository).save(argThat(user -> user.getWorkplaceId().equals(10L)));
-        }
+        verify(userRepository).save(argThat(user -> user.getWorkplaceId().equals(10L)));
+        verify(userOutboxService, times(1)).saveCreateEvent(any(UserCreatedEvent.class)); // Проверяем Outbox
     }
 
     @Test
