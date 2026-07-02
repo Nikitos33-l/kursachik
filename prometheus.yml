@@ -1,0 +1,17 @@
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+  - job_name: 'eureka-discovered-services'
+    eureka_sd_configs:
+      - server: 'http://eureka-server:8761/eureka'
+
+    relabel_configs:
+      - target_label: __metrics_path__
+        replacement: /actuator/prometheus
+      - source_labels: [__meta_eureka_app_name]
+        target_label: application
+        regex: (.*)
+        replacement: ${1}
+      - source_labels: [__meta_eureka_app_name]
+        target_label: job
