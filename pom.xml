@@ -29,6 +29,7 @@
         <module>security-service-api-common</module>
         <module>user-conracts</module>
         <module>config-server</module>
+        <module>payment-service</module>
     </modules>
 
     <properties>
