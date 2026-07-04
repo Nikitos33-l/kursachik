@@ -6,6 +6,7 @@ CREATE TABLE payments(
     status VARCHAR(50) NOT NULL,
     created_at TIMESTAMP WITHOUT TIME ZONE NOT NULL ,
     updated_at TIMESTAMP WITHOUT TIME ZONE,
+    confirmation_url VARCHAR(200),
     CONSTRAINT pk_payments PRIMARY KEY (payment_id)
 );
 

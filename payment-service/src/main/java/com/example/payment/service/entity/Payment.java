@@ -37,6 +37,9 @@ public class Payment {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "confirmation_url")
+    private String confirmationUrl;
+
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 

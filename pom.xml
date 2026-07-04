@@ -30,6 +30,7 @@
         <module>user-conracts</module>
         <module>config-server</module>
         <module>payment-service</module>
+        <module>order-service-api-common</module>
     </modules>
 
     <properties>
