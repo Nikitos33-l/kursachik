@@ -1,12 +1,11 @@
 package com.example.payment.service.controller;
 
 import com.example.payment.service.dto.PaymentResponse;
+import com.example.payment.service.dto.yookassa.responce.YooKassaWebhookNotification;
 import com.example.payment.service.service.PaymentService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/payment")
@@ -18,6 +17,11 @@ public class PaymentController {
     @PostMapping("/{orderId}")
     public PaymentResponse pay(@PathVariable Long orderId){
         return paymentService.initiatePayment(orderId);
+    }
+
+    @PostMapping("/webhook/yookassa")
+    public ResponseEntity<Void> handleYooKassaWebhook(@RequestBody YooKassaWebhookNotification notification){
+        return ResponseEntity.ok().build();
     }
 
 }
