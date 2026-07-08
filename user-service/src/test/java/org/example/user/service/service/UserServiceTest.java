@@ -9,7 +9,6 @@ import org.example.user.api.responceDto.ValidationResponse;
 import org.example.user.contracts.UserCreatedEvent;
 import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.contracts.UserUpdateEvent;
-import org.example.user.service.constant.CacheNames;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
 import org.example.user.service.dto.response.ResponseUserDto;

@@ -7,6 +7,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 public class PaymentServiceApplication {
 
     public static void main(String[] args) {
+        //TODO добавить тесты в этот сервис
         SpringApplication.run(PaymentServiceApplication.class, args);
     }
 

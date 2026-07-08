@@ -1,5 +1,6 @@
 package org.example.order.service.service;
 
+import com.example.order.service.api.common.dto.OrderTotalResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.example.order.service.dto.response.OrderItemDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
 import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
+import org.example.order.service.entity.OrderItem;
 import org.example.order.service.entity.OrderStatus;
 import org.example.order.service.mapper.OrderItemMapper;
 import org.example.order.service.mapper.OrderMapper;
@@ -35,6 +37,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.*;
 
 import static org.example.order.service.constant.CacheNames.*;
@@ -122,6 +125,21 @@ public class OrderManagementService {
         return orderMapper.toResponseOrderDto(dbOrder, response, orderItems);
     }
 
+    @Transactional(readOnly = true)
+    public OrderTotalResponse getTotal(Long orderId) {
+        log.info("[БД] Подсчет общей стоимости для заказа ID: {}", orderId);
+
+        Order order = getOrderOrThrow(orderId);
+
+        BigDecimal total = order.getOrderItems().stream()
+                .map(OrderItem::getPriceAtOrder)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        log.debug("[БД] Итоговая стоимость заказа ID: {} составила {} BYN", orderId, total);
+
+        return new OrderTotalResponse(total);
+    }
+
     private Order getOrderOrThrow(Long id) {
         return orderRepository.findById(id).orElseThrow(() -> new EntityNotFoundException("Заказ с таким id не был найден"));
     }
@@ -195,4 +213,6 @@ public class OrderManagementService {
             orders.forEach(o -> cache.evict(o.getId()));
         }
     }
+
+
 }
