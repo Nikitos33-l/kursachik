@@ -5,6 +5,7 @@ import com.example.order.service.api.common.dto.OrderTotalResponse;
 import com.example.payment.service.dto.PaymentDetails;
 import com.example.payment.service.dto.PaymentResponse;
 import com.example.payment.service.dto.RemotePaymentResult;
+import com.example.payment.service.dto.yookassa.responce.YooKassaWebhookNotification;
 import com.example.payment.service.entity.Payment;
 import com.example.payment.service.entity.PaymentStatus;
 import com.example.payment.service.repository.PaymentRepository;
@@ -13,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
@@ -34,6 +36,7 @@ public class PaymentServiceTest {
     @Mock private OrderServiceFeignClient orderServiceFeignClient;
     @Mock private PaymentRepository paymentRepository;
     @Mock private ExternalPaymentService externalPaymentService;
+    @Mock private OutboxService outboxService;
 
     @InjectMocks private PaymentService paymentService;
 
@@ -90,6 +93,65 @@ public class PaymentServiceTest {
         assertTrue(exception.getMessage().contains("Не удалось получить сумму заказа"));
         verify(paymentRepository, never()).save(any(Payment.class));
         verifyNoInteractions(externalPaymentService);
+    }
+
+    @Test
+    @DisplayName("Вебхук: игнорирование событий, отличных от payment.succeeded")
+    public void handleWebhookIgnoresNonSucceededEvents() {
+        YooKassaWebhookNotification notification = Mockito.mock(YooKassaWebhookNotification.class, Mockito.RETURNS_DEEP_STUBS);
+        when(notification.event()).thenReturn("payment.canceled");
+        when(notification.paymentObject().id()).thenReturn(EXTERNAL_ID);
+
+        paymentService.handleWebhook(notification);
+
+        verifyNoInteractions(paymentRepository);
+        verifyNoInteractions(outboxService);
+    }
+
+    @Test
+    @DisplayName("Вебхук: выброс исключения, если платеж отсутствует в базе данных")
+    public void handleWebhookThrowsExceptionWhenPaymentNotFound() {
+        YooKassaWebhookNotification notification = Mockito.mock(YooKassaWebhookNotification.class, Mockito.RETURNS_DEEP_STUBS);
+        when(notification.event()).thenReturn("payment.succeeded");
+        when(notification.paymentObject().id()).thenReturn(EXTERNAL_ID);
+        when(paymentRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> paymentService.handleWebhook(notification));
+        verify(outboxService, never()).savePaidEvent(anyLong());
+    }
+
+    @Test
+    @DisplayName("Вебхук: досрочный возврат без отправки события, если статус уже SUCCESS")
+    public void handleWebhookDoesNothingIfAlreadySuccess() {
+        YooKassaWebhookNotification notification = Mockito.mock(YooKassaWebhookNotification.class, Mockito.RETURNS_DEEP_STUBS);
+        when(notification.event()).thenReturn("payment.succeeded");
+        when(notification.paymentObject().id()).thenReturn(EXTERNAL_ID);
+
+        Payment payment = buildTestPayment(UUID.randomUUID());
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        when(paymentRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(payment));
+
+        paymentService.handleWebhook(notification);
+
+        assertEquals(PaymentStatus.SUCCESS, payment.getPaymentStatus());
+        verify(outboxService, never()).savePaidEvent(anyLong());
+    }
+
+    @Test
+    @DisplayName("Вебхук: успешное обновление статуса до SUCCESS и сохранение события в Outbox")
+    public void handleWebhookProcessesSuccessfully() {
+        YooKassaWebhookNotification notification = Mockito.mock(YooKassaWebhookNotification.class, Mockito.RETURNS_DEEP_STUBS);
+        when(notification.event()).thenReturn("payment.succeeded");
+        when(notification.paymentObject().id()).thenReturn(EXTERNAL_ID);
+
+        Payment payment = buildTestPayment(UUID.randomUUID());
+        payment.setPaymentStatus(PaymentStatus.PENDING);
+        when(paymentRepository.findByExternalId(EXTERNAL_ID)).thenReturn(Optional.of(payment));
+
+        paymentService.handleWebhook(notification);
+
+        assertEquals(PaymentStatus.SUCCESS, payment.getPaymentStatus());
+        verify(outboxService, times(1)).savePaidEvent(ORDER_ID);
     }
 
     private Payment buildTestPayment(UUID id) {

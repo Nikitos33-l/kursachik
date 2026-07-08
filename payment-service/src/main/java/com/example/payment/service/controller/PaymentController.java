@@ -21,6 +21,7 @@ public class PaymentController {
 
     @PostMapping("/webhook/yookassa")
     public ResponseEntity<Void> handleYooKassaWebhook(@RequestBody YooKassaWebhookNotification notification){
+        paymentService.handleWebhook(notification);
         return ResponseEntity.ok().build();
     }
 

@@ -5,6 +5,7 @@ import com.example.order.service.api.common.dto.OrderTotalResponse;
 import com.example.payment.service.dto.PaymentDetails;
 import com.example.payment.service.dto.PaymentResponse;
 import com.example.payment.service.dto.RemotePaymentResult;
+import com.example.payment.service.dto.yookassa.responce.YooKassaWebhookNotification;
 import com.example.payment.service.entity.Payment;
 import com.example.payment.service.entity.PaymentStatus;
 import com.example.payment.service.repository.PaymentRepository;
@@ -24,6 +25,7 @@ public class PaymentService {
     private final OrderServiceFeignClient orderServiceFeignClient;
     private final PaymentRepository paymentRepository;
     private final ExternalPaymentService externalPaymentService;
+    private final OutboxService outboxService;
 
     @Transactional
     public PaymentResponse initiatePayment(Long orderId) {
@@ -92,5 +94,39 @@ public class PaymentService {
         log.debug("[БД] Локальный платеж {} обновлен внешними идентификаторами.", payment.getId());
 
         return new PaymentResponse(payment.getId(), remoteResult.checkoutUrl());
+    }
+
+    @Transactional
+    public void handleWebhook(YooKassaWebhookNotification notification){
+        String eventType = notification.event();
+        var webhookObject = notification.paymentObject();
+        String externalId = webhookObject.id();
+
+        log.info("Начало обработки уведомления от ЮKassa для внешнего идентификатора: {}", externalId);
+
+        if (!"payment.succeeded".equals(eventType)) {
+            log.info("Получено необрабатываемое событие [{}] для платежа {}. Действия не требуются.", eventType, externalId);
+            return;
+        }
+
+        Payment payment = getPaymentByExternalId(externalId);
+
+        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            log.info("[Вебхук ЮKassa] Платеж {} уже был успешно обработан ранее. Пропускаем генерацию события.", externalId);
+            return;
+        }
+
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+
+        outboxService.savePaidEvent(payment.getOrderId());
+    }
+
+    private Payment getPaymentByExternalId(String externalId){
+        Optional<Payment> paymentOptional = paymentRepository.findByExternalId(externalId);
+        if (paymentOptional.isEmpty()) {
+            log.error("Платеж с внешним идентификатором {} не найден в локальной базе данных.", externalId);
+            throw new IllegalArgumentException("Payment not found with external ID: " + externalId);
+        }
+        return paymentOptional.get();
     }
 }
