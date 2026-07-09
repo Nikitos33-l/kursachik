@@ -1,5 +1,6 @@
 package com.example.payment.service.config;
 
+import com.example.payment.service.filter.WebhookFilter;
 import lombok.RequiredArgsConstructor;
 import org.example.securitycommon.AuthHeaderFilter;
 import org.springframework.context.annotation.Bean;
@@ -10,6 +11,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.web.cors.CorsConfigurationSource;
 
 @Configuration
@@ -18,6 +20,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 public class SecurityConfig {
     private final AuthHeaderFilter authHeaderFilter;
     private final CorsConfigurationSource corsConfigurationSource;
+    private final WebhookFilter yookassaWebhookFilter;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -26,7 +29,7 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth->
-                        auth.requestMatchers("/api/payment/webhook/**").permitAll()
+                        auth
                                 .requestMatchers("/actuator/**").permitAll()
                                 .requestMatchers(
                                         "/v3/api-docs/**",
@@ -36,6 +39,7 @@ public class SecurityConfig {
                                 .anyRequest().authenticated()
 
                         )
+                .addFilterBefore(yookassaWebhookFilter, LogoutFilter.class)
                 .addFilterBefore(authHeaderFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
 
