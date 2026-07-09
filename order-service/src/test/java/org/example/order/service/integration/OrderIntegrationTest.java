@@ -132,7 +132,6 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                         anyString(),
                         argThat(message -> {
                             try {
-                                // Парсим payload из байтов обратно в DTO для проверки полей
                                 String json = new String(message.getBody(), StandardCharsets.UTF_8);
                                 OrderNotificationDto dto = objectMapper.readValue(json, OrderNotificationDto.class);
                                 return dto.orderId().equals(savedOrder.getId()) &&

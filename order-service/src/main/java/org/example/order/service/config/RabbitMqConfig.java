@@ -29,12 +29,17 @@ public class RabbitMqConfig {
     private final String stationDeleteQueue;
     private final String stationDeleteRoutingKey;
 
+    private final String orderEventsExchange;
+    private final String orderPaidQueue;
+    private final String orderPaidRoutingKey;
+
     private final String deadLetterExchange;
     private final String userDeleteDlq;
     private final String stationDeleteDlq;
     private final String stationServicesUpdatedQueue;
     private final String stationServicesUpdatedRoutingKey;
     private final String stationServicesUpdatedDlq;
+    private final String orderPaidDlq;
 
     public RabbitMqConfig
             (@Value("${notification.exchange}") String exchange,
@@ -49,12 +54,16 @@ public class RabbitMqConfig {
              @Value("${station.exchange.name}") String stationEventExchange,
              @Value("${station.delete.queue}") String stationDeleteQueue,
              @Value("${station.delete.routing.key}") String stationDeleteRoutingKey,
+             @Value("${order.exchange}") String orderEventsExchange,
+             @Value("${order.paid.queue}") String orderPaidQueue,
+             @Value("${order.paid.routing.key}") String orderPaidRoutingKey,
              @Value("${dead.letter.exchange.name}") String deadLetterExchange,
              @Value("${order.dlq.user-delete}") String userDeleteDlq,
              @Value("${order.dlq.station-delete}") String stationDeleteDlq,
              @Value("${station.services.updated.queue}") String stationServicesUpdatedQueue,
              @Value("${station.services.updated.routing.key}") String stationServicesUpdatedRoutingKey,
-             @Value("${order.dlq.station-services-updated}") String stationServicesUpdatedDlq) {
+             @Value("${order.dlq.station-services-updated}") String stationServicesUpdatedDlq,
+             @Value("${order.dlq.order-paid}") String orderPaidDlq) {
 
         this.notificationExchange = exchange;
         this.userEventsExchange = userEventsExchange;
@@ -68,12 +77,16 @@ public class RabbitMqConfig {
         this.stationEventExchange = stationEventExchange;
         this.stationDeleteQueue = stationDeleteQueue;
         this.stationDeleteRoutingKey = stationDeleteRoutingKey;
+        this.orderEventsExchange = orderEventsExchange;
+        this.orderPaidQueue = orderPaidQueue;
+        this.orderPaidRoutingKey = orderPaidRoutingKey;
         this.deadLetterExchange = deadLetterExchange;
         this.userDeleteDlq = userDeleteDlq;
         this.stationDeleteDlq = stationDeleteDlq;
         this.stationServicesUpdatedQueue = stationServicesUpdatedQueue;
         this.stationServicesUpdatedRoutingKey = stationServicesUpdatedRoutingKey;
         this.stationServicesUpdatedDlq = stationServicesUpdatedDlq;
+        this.orderPaidDlq = orderPaidDlq;
     }
 
     @Bean
@@ -89,6 +102,11 @@ public class RabbitMqConfig {
     @Bean
     TopicExchange stationEventExchange(){
         return new TopicExchange(stationEventExchange,true,false);
+    }
+
+    @Bean
+    TopicExchange orderEventExchange(){
+        return new TopicExchange(orderEventsExchange,true,false);
     }
 
     @Bean
@@ -127,6 +145,12 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    Queue orderPaidQueue(){return new Queue(orderPaidQueue);}
+
+    @Bean
+    Queue orderPaidDlq(){return new Queue(orderPaidDlq);}
+
+    @Bean
     Binding userDeleteBinding(){
         return BindingBuilder.bind(userDeleteQueue()).to(userEventExchange()).with(userDeleteRoutingKey);
     }
@@ -142,6 +166,11 @@ public class RabbitMqConfig {
     }
 
     @Bean
+    Binding orderPaidBinding(){
+        return BindingBuilder.bind(orderPaidQueue()).to(orderEventExchange()).with(orderPaidRoutingKey);
+    }
+
+    @Bean
     Binding userDeleteDlqBinding(){
         return BindingBuilder.bind(userDeleteDlq()).to(deadLetterExchange()).with(userDeleteRoutingKey);
     }
@@ -154,6 +183,11 @@ public class RabbitMqConfig {
     @Bean
     Binding stationDeleteDlqBinding(){
         return BindingBuilder.bind(stationDeleteDlq()).to(deadLetterExchange()).with(stationDeleteRoutingKey);
+    }
+
+    @Bean
+    Binding orderPaidDlqBinding(){
+        return BindingBuilder.bind(orderPaidDlq()).to(deadLetterExchange()).with(orderPaidRoutingKey);
     }
 
     @Bean

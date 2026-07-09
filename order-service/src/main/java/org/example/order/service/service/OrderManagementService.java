@@ -125,6 +125,16 @@ public class OrderManagementService {
         return orderMapper.toResponseOrderDto(dbOrder, response, orderItems);
     }
 
+    @Transactional
+    public void handleOrderPaid(Long id){
+        Order order = getOrderOrThrow(id);
+        OrderStatus closeOrderStatus = orderStatusRepository.
+                findById("CLOSED").orElseThrow(()->new EntityNotFoundException("Статус с таким id не найден"));
+        order.setStatus(closeOrderStatus);
+        log.info("Статус заказа успешно сменен на закрыт.ID {}",id);
+    }
+
+
     @Transactional(readOnly = true)
     public OrderTotalResponse getTotal(Long orderId) {
         log.info("[БД] Подсчет общей стоимости для заказа ID: {}", orderId);
@@ -213,6 +223,8 @@ public class OrderManagementService {
             orders.forEach(o -> cache.evict(o.getId()));
         }
     }
+
+
 
 
 }
