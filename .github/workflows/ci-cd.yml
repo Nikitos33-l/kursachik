@@ -18,5 +18,9 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: 'maven'
+      - name: Tests
+        if: github.event_name=='pull_request'
+        run: mvn test
       - name: Build
+        if: github.event_name=='push'
         run: mvn clean package
