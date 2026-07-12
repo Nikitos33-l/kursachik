@@ -1,4 +1,4 @@
-name: CI
+name: CI\CD
 
 on:
   push:
@@ -24,3 +24,6 @@ jobs:
       - name: Build
         if: github.event_name=='push'
         run: mvn clean package
+      - name: Build docker images
+        if: github.event_name=='push'
+        run: docker compose build
