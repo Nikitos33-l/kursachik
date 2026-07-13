@@ -172,6 +172,20 @@ services:
     networks:
       - sto-network
 
+  payment-service:
+    build: ./payment-service
+    container_name: payment-service
+    environment:
+      <<: *spring-common-env
+      DB_HOST: postgres-server
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_started
+    networks:
+      - sto-network
+
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus

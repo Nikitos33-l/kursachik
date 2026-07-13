@@ -1,6 +1,6 @@
 package org.example.order.service.controller;
 
-import com.example.order.service.api.common.dto.OrderTotalResponse;
+import org.example.order.service.api.common.dto.OrderTotalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;

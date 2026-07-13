@@ -1,6 +1,6 @@
 package org.example.order.service.service;
 
-import com.example.order.service.api.common.dto.OrderTotalResponse;
+import org.example.order.service.api.common.dto.OrderTotalResponse;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -192,7 +192,7 @@ public class OrderManagementService {
         Map<Long, SummaryResponseStationDto> stationResponse = stationServiceClient.getStationsByOrders(stationRequest);
 
         return orders.stream()
-                .map(order -> orderMapper.toResponseOrderSummaryDto(order, userResponse.get(order.getVehicleId()), stationResponse.get(order.getStationId()), orderItemMapper.toDtoList(order.getOrderItems())))
+                .map(order -> orderMapper.toResponseOrderSummaryDto(order, userResponse.get(order.getVehicleId()), stationResponse.get(order.getId()), orderItemMapper.toDtoList(order.getOrderItems())))
                 .toList();
     }
 
