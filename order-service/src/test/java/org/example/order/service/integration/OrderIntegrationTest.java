@@ -132,7 +132,6 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                         anyString(),
                         argThat(message -> {
                             try {
-                                // Парсим payload из байтов обратно в DTO для проверки полей
                                 String json = new String(message.getBody(), StandardCharsets.UTF_8);
                                 OrderNotificationDto dto = objectMapper.readValue(json, OrderNotificationDto.class);
                                 return dto.orderId().equals(savedOrder.getId()) &&
@@ -267,7 +266,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                 .thenReturn(Map.of(order.getVehicleId(), new VehicleDto(100L, "BMW", "X5", "1111-BB-7")));
 
         when(stationServiceClient.getStationsByOrders(any()))
-                .thenReturn(Map.of(order.getStationId(), new SummaryResponseStationDto(stationId, "Центральная СТО", "Минск")));
+                .thenReturn(Map.of(order.getId(), new SummaryResponseStationDto(stationId, "Центральная СТО", "Минск")));
 
         mockMvc.perform(MockMvcRequestBuilders.get("/api/order/getClientOrder")
                         .headers(getSecurityHeaders("ROLE_CLIENT", stationId, clientId)))

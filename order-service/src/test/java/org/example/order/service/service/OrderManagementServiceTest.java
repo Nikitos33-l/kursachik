@@ -128,7 +128,7 @@ class OrderManagementServiceTest {
 
         when(orderRepository.findAllByClientId(clientId)).thenReturn(List.of(order));
         when(userServiceClient.getCarsInfo(anyList())).thenReturn(Map.of(vehicleId, vehicleDto));
-        when(stationServiceClient.getStationsByOrders(anyList())).thenReturn(Map.of(stationId, stationDto));
+        when(stationServiceClient.getStationsByOrders(anyList())).thenReturn(Map.of(orderId, stationDto));
 
         ResponseOrderSummaryDto expectedSummary = new ResponseOrderSummaryDto(
                 vehicleDto, List.of(), "NEW", stationDto.name()

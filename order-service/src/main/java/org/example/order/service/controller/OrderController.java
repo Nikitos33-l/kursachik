@@ -1,5 +1,6 @@
 package org.example.order.service.controller;
 
+import org.example.order.service.api.common.dto.OrderTotalResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -94,5 +95,17 @@ public class OrderController {
     public List<ResponseOrderDto> findWorkerOrders(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal userPrincipal) {
         log.debug("Мастер [{}] запросил список назначенных на него заказов", userPrincipal.email());
         return orderService.findWorkerOrder(userPrincipal);
+    }
+
+    @GetMapping("/internal/total/{orderId}")
+    public OrderTotalResponse getTotalByOrderId(@PathVariable Long orderId) {
+        log.info("[Внутренний API] Получен запрос стоимости для заказа ID: {}", orderId);
+
+        OrderTotalResponse response = orderService.getTotal(orderId);
+
+        log.debug("[Внутренний API] Успешно отправлен ответ для заказа ID: {}. Сумма: {} BYN",
+                orderId, response.total());
+
+        return response;
     }
 }
