@@ -2,6 +2,7 @@ package org.example.order.service.consumer;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.example.order.service.dto.request.RequestOrderStatusDto;
 import org.example.order.service.service.OrderManagementService;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -17,7 +18,8 @@ public class OrderEventConsumer {
     public void handleOrderPaid(@Payload Long id){
         log.info("[RABBITMQ CONSUMER] Получено событие оплаты заказа . ID: {}", id);
         try {
-            orderManagementService.handleOrderPaid(id);
+            RequestOrderStatusDto orderStatusDto = new RequestOrderStatusDto("CLOSED");
+            orderManagementService.updateStatus(id,orderStatusDto);
         }
         catch (Exception e) {
             log.error("[RABBITMQ CONSUMER] Критический сбой при обработке оплаты заказа ID: {}. Ошибка: {}", id, e.getMessage(), e);

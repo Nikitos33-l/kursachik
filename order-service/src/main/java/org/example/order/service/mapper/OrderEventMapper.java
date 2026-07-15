@@ -23,6 +23,7 @@ public class OrderEventMapper {
             case "NEW"         -> "NEW";
             case "IN_PROGRESS" -> "IN_PROGRESS";
             case "DONE"        -> "READY";
+            case "CLOSED"      -> "CLOSED";
             case "CANCELLED"   -> "CANCELLED";
             default            -> "PROBLEM";
         };
