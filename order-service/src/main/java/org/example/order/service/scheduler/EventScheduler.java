@@ -26,11 +26,11 @@ public class EventScheduler {
     private final RabbitTemplate rabbitTemplate;
     private final TransactionTemplate transactionTemplate;
 
-    @Scheduled(fixedDelay = 5000)
+    @Scheduled(fixedDelay = 1000)
     @SchedulerLock(
             name = "outboxPublisherLock",
             lockAtMostFor = "10s",
-            lockAtLeastFor = "3s"
+            lockAtLeastFor = "300ms"
     )
     public void processOutboxEvents(){
        List<OutboxEvent> events = eventRepository.findAllByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, Limit.of(50));
