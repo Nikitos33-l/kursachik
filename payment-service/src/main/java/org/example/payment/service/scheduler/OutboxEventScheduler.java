@@ -1,5 +1,6 @@
 package org.example.payment.service.scheduler;
 
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.payment.service.entity.OutboxEvent;
 import org.example.payment.service.entity.OutboxStatus;
 import org.example.payment.service.repository.OutboxEventRepository;
@@ -26,6 +27,11 @@ public class OutboxEventScheduler {
     private final TransactionTemplate transactionTemplate;
 
     @Scheduled(fixedDelay = 1000)
+    @SchedulerLock(
+            name = "outboxPublisherLock",
+            lockAtMostFor = "10s",
+            lockAtLeastFor = "300ms"
+    )
     public void processOutboxEvents(){
         List<OutboxEvent> events = outboxEventRepository.findAllByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, Limit.of(50));
 

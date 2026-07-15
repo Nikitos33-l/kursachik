@@ -54,7 +54,6 @@ class AuthApiIntegrationTests extends BaseIntegrationTest {
         createAndSaveRole("CLIENT");
         RegisterRequest registerRequest = new RegisterRequest("Aleksey", "alex@mail.com", "strongPassword123");
 
-        // 1. Выполняем запрос регистрации
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequest)))

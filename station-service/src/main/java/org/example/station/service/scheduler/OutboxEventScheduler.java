@@ -2,6 +2,7 @@ package org.example.station.service.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.example.station.service.entity.OutboxEvent;
 import org.example.station.service.entity.OutboxStatus;
 import org.example.station.service.repository.OutboxEventRepository;
@@ -25,6 +26,11 @@ public class OutboxEventScheduler {
     private final TransactionTemplate transactionTemplate;
 
     @Scheduled(fixedDelay = 1000)
+    @SchedulerLock(
+            name = "PublishOutboxEvent",
+            lockAtLeastFor = "300ms",
+            lockAtMostFor = "10s"
+    )
     public void processOutboxEvent(){
         List<OutboxEvent> events = eventRepository.
                 findAllByStatusOrderByCreatedAtAsc(OutboxStatus.PENDING, Limit.of(50));
