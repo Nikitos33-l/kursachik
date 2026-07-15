@@ -40,6 +40,7 @@ import java.time.Duration;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.example.order.service.constant.CacheNames.USER_EMAIL_CACHE;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -61,6 +62,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     @Value("${station.services.updated.queue}") private String stationServicesUpdatedQueue;
     @Value("${user.delete.queue}") private String userDeleteQueue;
     @Value("${user.update.queue}") private String userUpdateQueue;
+    @Value("${order.paid.queue}") private String orderPaidQueue;
 
     private UUID clientId;
     private UUID workerId;
@@ -69,6 +71,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
 
     private OrderStatus statusNew;
     private OrderStatus statusInProgress;
+    private OrderStatus statusClose;
 
     @BeforeEach
     @Override
@@ -87,6 +90,12 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         statusInProgress.setId("IN_PROGRESS");
         statusInProgress.setName("В работе");
         orderStatusRepository.save(statusInProgress);
+
+        statusClose = new OrderStatus();
+        statusClose.setId("CLOSED");
+        statusClose.setName("Закрыт");
+        orderStatusRepository.save(statusClose);
+
 
         clientId = UUID.randomUUID();
         workerId = UUID.randomUUID();
@@ -343,7 +352,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         Order order = createAndSaveSampleOrder();
         UUID targetUserId = order.getClientId();
 
-        Cache emailCache = cacheManager.getCache(org.example.order.service.constant.CacheNames.USER_EMAIL_CACHE);
+        Cache emailCache = cacheManager.getCache(USER_EMAIL_CACHE);
         assertThat(emailCache).isNotNull();
         emailCache.put(targetUserId, "client-email@test.com");
 
@@ -364,7 +373,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Consumer: Изменение данных пользователя — инвалидация устаревшего кэша email")
     void handleUpdateUser_ShouldEvictCacheOnUserUpdateEvent() {
         UUID targetUserId = UUID.randomUUID();
-        Cache emailCache = cacheManager.getCache(org.example.order.service.constant.CacheNames.USER_EMAIL_CACHE);
+        Cache emailCache = cacheManager.getCache(USER_EMAIL_CACHE);
         assertThat(emailCache).isNotNull();
         emailCache.put(targetUserId, "old-email@test.com");
 
@@ -373,10 +382,28 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         rabbitTemplate.convertAndSend(userUpdateQueue, updateEvent);
 
         Awaitility.await()
-                .atMost(java.time.Duration.ofSeconds(5))
+                .atMost(Duration.ofSeconds(5))
                 .untilAsserted(() -> {
                     String cachedEmail = emailCache.get(targetUserId, String.class);
                     assertThat(cachedEmail).isNull();
+                });
+    }
+
+    @Test
+    @DisplayName("Consumer: Оплата заказа – изменение статуса")
+    void handlePaidOrder_ShouldChangeStatus() {
+        Order order = createAndSaveSampleOrder();
+        when(userServiceClient.getEmailByUserId(clientId)).thenReturn("test-gmail@gmail.com");
+        rabbitTemplate.convertAndSend(orderPaidQueue, order.getId());
+
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .untilAsserted(() -> {
+                    Order updatedOrder = orderRepository.findById(order.getId())
+                            .orElseThrow(() -> new AssertionError("Заказ не найден в БД"));
+
+                    assertThat(updatedOrder.getStatus().getId()).isEqualTo(statusClose.getId());
                 });
     }
 
