@@ -9,6 +9,7 @@ x-spring-common-env: &spring-common-env
   EUREKA_HOST: eureka-server
   RABBITMQ_HOST: rabbitmq
   REDIS_HOST: redis
+  ZIPKIN_HOST: zipkin
 
 services:
   rabbitmq:
@@ -205,6 +206,17 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - prometheus
+    restart: always
+    networks:
+      - sto-network
+
+  zipkin:
+    image: openzipkin/zipkin:latest
+    container_name: zipkin
+    ports:
+      - "9411:9411"
+    environment:
+      - STORAGE_TYPE=mem
     restart: always
     networks:
       - sto-network
