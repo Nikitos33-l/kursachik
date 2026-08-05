@@ -24,8 +24,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
     }
 
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleArgumentNotValidException(MethodArgumentNotValidException ex){
+    @ExceptionHandler({MethodArgumentNotValidException.class,IllegalArgumentException.class})
+    public ResponseEntity<ErrorResponse> handleArgumentNotValidException(RuntimeException ex){
         ErrorResponse errorResponse = new ErrorResponse(ex.getMessage(),HttpStatus.BAD_REQUEST.value(),LocalDateTime.now());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorResponse);
     }
