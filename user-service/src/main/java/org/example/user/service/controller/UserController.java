@@ -37,7 +37,7 @@ public class UserController {
 
     private final UserService userService;
 
-    @GetMapping("/getAll")
+    @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Получить всех пользователей станции", description = "Доступно только пользователям с ролью ADMIN. Возвращает список пользователей, привязанных к станции текущего администратора.")
     @ApiResponses({
@@ -51,7 +51,7 @@ public class UserController {
         return users;
     }
 
-    @GetMapping("/get/all/workers")
+    @GetMapping("/workers")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Получить всех работников станции", description = "Доступно только для ADMIN. Возвращает краткий список сотрудников автосервиса.")
     public List<UserShortResponse> getWorkers(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -59,7 +59,7 @@ public class UserController {
         return userService.getAllWorkers(userPrincipal.stationId());
     }
 
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить пользователя", description = "Удаляет пользователя системы по его уникальному UUID. Доступно только для ADMIN.")
     @ApiResponses({
@@ -72,14 +72,14 @@ public class UserController {
         log.info("Пользователь с ID: {} успешно удален", id);
     }
 
-    @GetMapping("/get/info/{id}")
+    @GetMapping("/{id}")
     @Operation(summary = "Получить краткую информацию о пользователе", description = "Возвращает базовые данные пользователя (имя, контакты) по его UUID.")
     public UserShortResponse getInfo(@Parameter(description = "UUID пользователя") @PathVariable UUID id) {
         log.info("Запрос информации о пользователе с ID: {}", id);
         return userService.getInfo(id);
     }
 
-    @PutMapping("/update/{id}")
+    @PutMapping("/{id}")
     @Operation(summary = "Обновить данные пользователя", description = "Позволяет изменить имя и почту существующего профиля.")
     @ApiResponse(responseCode = "200", description = "Данные успешно обновлены")
     public void updateUser(
@@ -91,7 +91,7 @@ public class UserController {
         log.info("Профиль пользователя ID: {} успешно сохранен", id);
     }
 
-    @PostMapping("/add")
+    @PostMapping("/")
     @PreAuthorize("hasAnyRole('ADMIN','SUPERADMIN')")
     @Operation(summary = "Создать нового пользователя", description = "Добавление сотрудника или администратора в систему. Доступно ADMIN и SUPERADMIN.")
     @ApiResponse(responseCode = "200", description = "Пользователь успешно создан")

@@ -28,7 +28,7 @@ public class OrderController {
 
     private final OrderManagementService orderService;
 
-    @GetMapping("/get/{id}")
+    @GetMapping("/{id}")
     @Operation(summary = "Получить детальную информацию о заказе по ID")
     public ResponseOrderDto find(@PathVariable Long id) {
         log.debug("Запрос информации о заказе с ID: {}", id);
@@ -48,7 +48,7 @@ public class OrderController {
         log.info("Статус заказа ID {} успешно обновлен", id);
     }
 
-    @GetMapping("/getAll")
+    @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Получить все заказы привязанной станции", description = "Доступно администратору СТО (ADMIN). Фильтрует заказы по его stationId")
     public List<ResponseOrderDto> findAll(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -63,7 +63,7 @@ public class OrderController {
         return orderService.findUserOrder(userPrincipal);
     }
 
-    @PutMapping("/updateOrder/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Полное редактирование заказа администратором", description = "Позволяет переназначить список исполнителей (механиков) и скорректировать статус")
     public void updateOrder(
@@ -77,7 +77,7 @@ public class OrderController {
         log.info("Заказ ID {} успешно отредактирован администратором", id);
     }
 
-    @PostMapping("/create")
+    @PostMapping("/")
     @Operation(summary = "Оформить новую заявку на ремонт (Создать заказ)")
     public void createOrder(
             @RequestBody RequestOrderDto order,

@@ -39,12 +39,12 @@ class ServiceApiTest extends BaseIntegrationTests {
     private final UUID authUserId = UUID.randomUUID();
 
     @Test
-    @DisplayName("POST /api/service/add: Успешное добавление услуги админом")
+    @DisplayName("POST /api/service/: Успешное добавление услуги админом")
     void shouldAddServiceSuccessfully() throws Exception {
         Station station = createAndSaveStation("Станция ТехОбслуживания");
         RequestServiceDto requestDto = new RequestServiceDto("Замена масла", new BigDecimal("150.00"));
 
-        mockMvc.perform(post("/api/service/add")
+        mockMvc.perform(post("/api/service/")
                         .headers(getSecurityHeaders("ROLE_ADMIN", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -57,12 +57,12 @@ class ServiceApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("POST /api/service/add: Ошибка 403, если у пользователя нет роли ADMIN")
+    @DisplayName("POST /api/service/: Ошибка 403, если у пользователя нет роли ADMIN")
     void shouldFailToAddServiceIfRoleIsInvalid() throws Exception {
         Station station = createAndSaveStation("Станция Тест");
         RequestServiceDto requestDto = new RequestServiceDto("Диагностика", new BigDecimal("50.00"));
 
-        mockMvc.perform(post("/api/service/add")
+        mockMvc.perform(post("/api/service/")
                         .headers(getSecurityHeaders("ROLE_USER", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -72,14 +72,14 @@ class ServiceApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("PUT /api/service/update/{id}: Обновление услуги воркером и асинхронный триггер RabbitMQ")
+    @DisplayName("PUT /api/service/{id}: Обновление услуги воркером и асинхронный триггер RabbitMQ")
     void shouldUpdateServiceAndSendRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Станция 1");
         Service service = createAndSaveService("Старая услуга", new BigDecimal("100.00"), station);
 
         RequestServiceDto updateDto = new RequestServiceDto("Новая услуга", new BigDecimal("200.00"));
 
-        mockMvc.perform(put("/api/service/update/{id}", service.getId())
+        mockMvc.perform(put("/api/service/{id}", service.getId())
                         .headers(getSecurityHeaders("ROLE_WORKER", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateDto)))
@@ -97,12 +97,12 @@ class ServiceApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("DELETE /api/service/del/{id}: Удаление услуги админом и асинхронный триггер RabbitMQ")
+    @DisplayName("DELETE /api/service/{id}: Удаление услуги админом и асинхронный триггер RabbitMQ")
     void shouldDeleteServiceAndSendRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Станция 1");
         Service service = createAndSaveService("Услуга для удаления", new BigDecimal("50.00"), station);
 
-        mockMvc.perform(delete("/api/service/del/{id}", service.getId())
+        mockMvc.perform(delete("/api/service/{id}", service.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", station.getId(), authUserId)))
                 .andExpect(status().isOk());
 
@@ -144,12 +144,12 @@ class ServiceApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("GET /api/service/get/{id}: Получение одной услуги по ID")
+    @DisplayName("GET /api/service/{id}: Получение одной услуги по ID")
     void shouldGetServiceById() throws Exception {
         Station station = createAndSaveStation("Центральная");
         Service service = createAndSaveService("Диагностика двигателя", new BigDecimal("250.00"), station);
 
-        mockMvc.perform(get("/api/service/get/{id}", service.getId())
+        mockMvc.perform(get("/api/service/{id}", service.getId())
                         .headers(getSecurityHeaders("ROLE_USER", station.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())

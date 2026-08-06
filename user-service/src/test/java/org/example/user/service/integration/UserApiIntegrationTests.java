@@ -49,7 +49,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldGetAllUsersForAdmin() throws Exception {
         createAndSaveTestUser(100L, "Ivan");
 
-        mockMvc.perform(get("/api/user/getAll")
+        mockMvc.perform(get("/api/user/")
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -60,7 +60,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @Test
     @DisplayName("Отказ в доступе при попытке получить всех пользователей без роли ADMIN")
     void shouldFailGetAllUsersWithoutAdminRole() throws Exception {
-        mockMvc.perform(get("/api/user/getAll")
+        mockMvc.perform(get("/api/user/")
                         .headers(getSecurityHeaders("ROLE_WORKER", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
@@ -71,7 +71,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldDeleteUser() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Oleg");
 
-        mockMvc.perform(delete("/api/user/delete/{id}", savedUser.getId())
+        mockMvc.perform(delete("/api/user/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId)))
                 .andExpect(status().isOk());
 
@@ -91,7 +91,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         RequestAddUserDto dto = new RequestAddUserDto("Иван", "ivan@gmail.com", "pass", "ADMIN", 12L);
 
-        mockMvc.perform(post("/api/user/add")
+        mockMvc.perform(post("/api/user/")
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
@@ -113,7 +113,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         RequestAddUserDto dto = new RequestAddUserDto("WorkerName", "worker@gmail.com", "pass", "WORKER", 12L);
 
-        mockMvc.perform(post("/api/user/add")
+        mockMvc.perform(post("/api/user/")
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(dto)))
@@ -138,7 +138,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         RequestAddUserDto duplicateDto = new RequestAddUserDto("Ivan2", "test_ivan@mail.com", "pass", "ADMIN", 100L);
 
-        mockMvc.perform(post("/api/user/add")
+        mockMvc.perform(post("/api/user/")
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(duplicateDto)))
@@ -152,7 +152,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         RequestUpdateUserDto invalidDto = new RequestUpdateUserDto("", "");
 
-        mockMvc.perform(put("/api/user/update/{id}", savedUser.getId())
+        mockMvc.perform(put("/api/user/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(invalidDto)))
@@ -174,7 +174,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         userRepository.saveAll(List.of(worker, admin));
 
-        mockMvc.perform(get("/api/user/get/all/workers")
+        mockMvc.perform(get("/api/user/workers")
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -187,7 +187,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     void shouldGetUserInfo() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Ivan");
 
-        mockMvc.perform(get("/api/user/get/info/{id}", savedUser.getId())
+        mockMvc.perform(get("/api/user/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -202,7 +202,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
 
         RequestUpdateUserDto updateDto = new RequestUpdateUserDto("NewName", "newemail@mail.com");
 
-        mockMvc.perform(put("/api/user/update/{id}", savedUser.getId())
+        mockMvc.perform(put("/api/user/{id}", savedUser.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", 100L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateDto)))

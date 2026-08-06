@@ -34,7 +34,6 @@ public class TokenController {
             @Parameter(description = "Заголовок Authorization, содержащий 'Bearer <token>'")
             @RequestHeader(name = HttpHeaders.AUTHORIZATION, required = false) String authHeader
     ) {
-        // Используем DEBUG, чтобы логи не забивались на каждый чих фронтенда
         log.debug("Получен внутренний запрос на валидацию токена");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
