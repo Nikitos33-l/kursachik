@@ -20,29 +20,29 @@ public class StationController {
     private final StationService stationService;
 
     @PreAuthorize("hasRole('SUPERADMIN')")
-    @PostMapping("/add")
+    @PostMapping("/")
     public void addStation(@RequestBody @Valid RequestStationDto requestStationDto){
         stationService.addStation(requestStationDto);
     }
 
-    @GetMapping("/findById/{id}")
+    @GetMapping("/{id}")
     public ResponseStationDto getStation(@PathVariable Long id){
         return stationService.findById(id);
     }
 
-    @GetMapping("/findAll")
+    @GetMapping("/")
     public List<ResponseStationDto> findAll(){
         return stationService.findAll();
     }
 
     @PreAuthorize("hasRole('SUPERADMIN')")
-    @DeleteMapping("/delete/{id}")
+    @DeleteMapping("/{id}")
     public void deleteStation(@PathVariable Long id){
         stationService.delete(id);
     }
 
     @PreAuthorize("hasRole('SUPERADMIN')")
-    @PutMapping("/update/{id}")
+    @PutMapping("/{id}")
     public void updateStation(@PathVariable Long id,@RequestBody @Valid RequestStationDto stationDto){
         stationService.update(id,stationDto);
     }

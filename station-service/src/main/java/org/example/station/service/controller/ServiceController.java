@@ -39,7 +39,7 @@ public class ServiceController {
         return services;
     }
 
-    @GetMapping("/get/{id}")
+    @GetMapping("/{id}")
     @Operation(summary = "Получить услугу по ID", description = "Возвращает детальную информацию о конкретной услуге.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Услуга успешно найдена"),
@@ -50,7 +50,7 @@ public class ServiceController {
         return service.findById(id);
     }
 
-    @DeleteMapping("/del/{id}")
+    @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Удалить услугу", description = "Доступно только для ADMIN. Удаляет услугу из системы по ID.")
     @ApiResponses({
@@ -63,7 +63,7 @@ public class ServiceController {
         log.info("Услуга ID: {} успешно удалена", id);
     }
 
-    @PostMapping("/add")
+    @PostMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Добавить новую услугу", description = "Доступно только для ADMIN. Создает новую позицию в прайс-листе СТО.")
     @ApiResponses({
@@ -79,7 +79,7 @@ public class ServiceController {
         log.info("Услуга '{}' успешно добавлена в систему", serviceDto.name());
     }
 
-    @PutMapping("/update/{id}")
+    @PutMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN','WORKER')")
     @Operation(summary = "Обновить данные услуги", description = "Доступно для ADMIN и WORKER. Позволяет изменить название, цену или описание услуги.")
     public void update(
