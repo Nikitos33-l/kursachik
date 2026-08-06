@@ -1,6 +1,5 @@
 package org.example.station.service.service;
 
-import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -75,22 +74,24 @@ public class StationService {
         log.info("Профиль СТО ID: {} успешно сохранен", id);
     }
 
+
+    @Transactional
+    @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
+    public void delete(Long id) {
+        log.warn("Инициация удаления СТО ID: {}", id);
+        Station station = getStationById(id);
+        station.setStatus(Station.StationStatus.DELETING);
+        outboxEventService.saveStationDeleteEvent(id);
+        log.info("СТО ID: {} удалена из БД, событие удаления успешно сохранено в Outbox", id);
+
+    }
+
     Station getStationById(Long id) {
         return stationRepository.findById(id)
                 .orElseThrow(() -> {
                     log.error("Станция с ID {} не найдена", id);
                     return new EntityNotFoundException("Станция с таким id не была найдена");
                 });
-    }
-
-    @Transactional
-    @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
-    public void delete(Long id) {
-        log.warn("Инициация удаления СТО ID: {}", id);
-        stationRepository.deleteById(id);
-        outboxEventService.saveStationDeleteEvent(id);
-        log.info("СТО ID: {} удалена из БД, событие удаления успешно сохранено в Outbox", id);
-
     }
 
     @Transactional(readOnly = true)

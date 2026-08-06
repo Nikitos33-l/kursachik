@@ -7,6 +7,8 @@ import org.example.station.service.api.common.dto.response.SummaryResponseStatio
 import org.example.station.service.dto.request.RequestStationDto;
 import org.example.station.service.dto.response.ResponseStationDto;
 import org.example.station.service.service.StationService;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -37,8 +39,9 @@ public class StationController {
 
     @PreAuthorize("hasRole('SUPERADMIN')")
     @DeleteMapping("/{id}")
-    public void deleteStation(@PathVariable Long id){
+    public ResponseEntity<Void> deleteStation(@PathVariable Long id){
         stationService.delete(id);
+        return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
     @PreAuthorize("hasRole('SUPERADMIN')")

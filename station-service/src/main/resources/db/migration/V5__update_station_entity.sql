@@ -1,0 +1,2 @@
+ALTER TABLE station
+ADD COLUMN status VARCHAR(60)
