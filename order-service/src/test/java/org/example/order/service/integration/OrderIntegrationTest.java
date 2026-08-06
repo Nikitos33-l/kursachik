@@ -123,7 +123,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         );
         when(stationServiceClient.validateStationAndGetServices(eq(stationId), any())).thenReturn(mockStationResponse);
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/order/create")
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/order/")
                         .headers(getSecurityHeaders("ROLE_CLIENT", stationId, clientId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -163,7 +163,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                 .build();
         when(userServiceClient.getOrderInfo(any())).thenReturn(mockUserServiceResponse);
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/order/get/{id}", order.getId())
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/order/{id}", order.getId())
                         .headers(getSecurityHeaders("ROLE_CLIENT", stationId, clientId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(order.getId()))
@@ -220,7 +220,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
         );
         when(userServiceClient.validateWorkers(any())).thenReturn(mockValidation);
 
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/order/updateOrder/{id}", order.getId())
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/order/{id}", order.getId())
                         .headers(getSecurityHeaders("ROLE_ADMIN", stationId, adminId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(putOrderRequestDto)))
@@ -259,7 +259,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                 .build();
         when(userServiceClient.getOrdersInfo(any())).thenReturn(Map.of(order.getId(), mockInfo));
 
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/order/getAll")
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/order/")
                         .headers(getSecurityHeaders("ROLE_ADMIN", stationId, adminId)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())

@@ -46,14 +46,14 @@ class StationApiTest extends BaseIntegrationTests {
     private final BigDecimal defaultLat = new BigDecimal("53.900000");
 
     @Test
-    @DisplayName("POST /api/stations/add: Успешное добавление станции супер-админом")
+    @DisplayName("POST /api/stations/: Успешное добавление станции супер-админом")
     void shouldAddStationSuccessfullyBySuperAdmin() throws Exception {
         RequestStationDto requestDto = new RequestStationDto("Станция Восток", "Минск, Независимости 116");
         AddressCoordinate mockCoordinate = new AddressCoordinate(defaultLon, defaultLat);
 
         when(geocoderService.getCoordinate(requestDto.address())).thenReturn(mockCoordinate);
 
-        mockMvc.perform(post("/api/stations/add")
+        mockMvc.perform(post("/api/stations/")
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", null, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -66,11 +66,11 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("POST /api/stations/add: Отказ в доступе, если роль не SUPERADMIN")
+    @DisplayName("POST /api/stations/: Отказ в доступе, если роль не SUPERADMIN")
     void shouldReturnForbiddenWhenAddStationNotSuperAdmin() throws Exception {
         RequestStationDto requestDto = new RequestStationDto("Станция Тест", "Минск, Ленина 1");
 
-        mockMvc.perform(post("/api/stations/add")
+        mockMvc.perform(post("/api/stations/")
                         .headers(getSecurityHeaders("ROLE_ADMIN", 1L, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestDto)))
@@ -80,11 +80,11 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("GET /api/stations/findById/{id}: Успешное получение станции по ID")
+    @DisplayName("GET /api/stations/{id}: Успешное получение станции по ID")
     void shouldGetStationById() throws Exception {
         Station savedStation = createAndSaveStation("Центральная", "Минск, Берута 3");
 
-        mockMvc.perform(get("/api/stations/findById/{id}", savedStation.getId())
+        mockMvc.perform(get("/api/stations/{id}", savedStation.getId())
                         .headers(getSecurityHeaders("ROLE_USER", savedStation.getId(), authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -94,12 +94,12 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("GET /api/stations/findAll: Успешное получение списка всех станций")
+    @DisplayName("GET /api/stations/: Успешное получение списка всех станций")
     void shouldGetAllStations() throws Exception {
         createAndSaveStation("Станция 1", "Адрес 1");
         createAndSaveStation("Станция 2", "Адрес 2");
 
-        mockMvc.perform(get("/api/stations/findAll")
+        mockMvc.perform(get("/api/stations/")
                         .headers(getSecurityHeaders("ROLE_USER", null, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
@@ -109,7 +109,7 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("PUT /api/stations/update/{id}: Успешное обновление имени и адреса с вызовом геокодера")
+    @DisplayName("PUT /api/stations/{id}: Успешное обновление имени и адреса с вызовом геокодера")
     void shouldUpdateStationWithAddressChange() throws Exception {
         Station station = createAndSaveStation("Старое имя", "Старый адрес");
         RequestStationDto updateDto = new RequestStationDto("Новое имя", "Новый адрес");
@@ -118,7 +118,7 @@ class StationApiTest extends BaseIntegrationTests {
         BigDecimal newLat = new BigDecimal("54.100000");
         when(geocoderService.getCoordinate(updateDto.address())).thenReturn(new AddressCoordinate(newLon, newLat));
 
-        mockMvc.perform(put("/api/stations/update/{id}", station.getId())
+        mockMvc.perform(put("/api/stations/{id}", station.getId())
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", null, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateDto)))
@@ -131,12 +131,12 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("PUT /api/stations/update/{id}: Обновление только имени (адрес совпадает, геокодер не вызывается)")
+    @DisplayName("PUT /api/stations/{id}: Обновление только имени (адрес совпадает, геокодер не вызывается)")
     void shouldUpdateStationWithoutAddressChange() throws Exception {
         Station station = createAndSaveStation("Старое имя", "Минск, Ленина 1");
         RequestStationDto updateDto = new RequestStationDto("Новое имя", "минск, ленина 1");
 
-        mockMvc.perform(put("/api/stations/update/{id}", station.getId())
+        mockMvc.perform(put("/api/stations/{id}", station.getId())
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", null, authUserId))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateDto)))
@@ -148,12 +148,12 @@ class StationApiTest extends BaseIntegrationTests {
     }
 
     @Test
-    @DisplayName("DELETE /api/stations/delete/{id}: Полная проверка удаления и асинхронной отправки сообщения в RabbitMQ")
+    @DisplayName("DELETE /api/stations/{id}: Полная проверка удаления и асинхронной отправки сообщения в RabbitMQ")
     void shouldDeleteStationAndVerifyRabbitMessage() throws Exception {
         Station station = createAndSaveStation("Удаляемая станция", "Адрес");
         Long deletedId = station.getId();
 
-        mockMvc.perform(delete("/api/stations/delete/{id}", deletedId)
+        mockMvc.perform(delete("/api/stations/{id}", deletedId)
                         .headers(getSecurityHeaders("ROLE_SUPERADMIN", null, authUserId))
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());

@@ -48,7 +48,7 @@ public class OrderController {
         log.info("Статус заказа ID {} успешно обновлен", id);
     }
 
-    @GetMapping()
+    @GetMapping("/")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Получить все заказы привязанной станции", description = "Доступно администратору СТО (ADMIN). Фильтрует заказы по его stationId")
     public List<ResponseOrderDto> findAll(@Parameter(hidden = true) @AuthenticationPrincipal UserPrincipal userPrincipal) {
@@ -77,7 +77,7 @@ public class OrderController {
         log.info("Заказ ID {} успешно отредактирован администратором", id);
     }
 
-    @PostMapping()
+    @PostMapping("/")
     @Operation(summary = "Оформить новую заявку на ремонт (Создать заказ)")
     public void createOrder(
             @RequestBody RequestOrderDto order,
