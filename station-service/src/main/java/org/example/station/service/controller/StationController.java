@@ -40,7 +40,7 @@ public class StationController {
     @PreAuthorize("hasRole('SUPERADMIN')")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteStation(@PathVariable Long id){
-        stationService.delete(id);
+        stationService.initiateDelete(id);
         return ResponseEntity.status(HttpStatus.ACCEPTED).build();
     }
 
