@@ -282,6 +282,7 @@ public class UserService {
     public void deleteByWorkplace(Long id) {
         log.warn("ВНИМАНИЕ: Запущено каскадное удаление всех пользователей для СТО ID: {}", id);
         userRepository.deleteAllByWorkplaceId(id);
+        userOutboxService.saveUserStationDeletedEvent(id);
         log.info("Все пользователи для СТО ID: {} успешно удалены", id);
     }
 

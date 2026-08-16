@@ -37,6 +37,9 @@ public class UserOutboxService {
     @Value("${user.delete.routing.key}")
     private String deleteRoutingKey;
 
+    @Value("${user.success.station.delete}")
+    private String userStationSuccessDeleteRoutingKey;
+
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveCreateEvent(UserCreatedEvent event) {
         saveEvent(createRoutingKey, event);
@@ -50,6 +53,11 @@ public class UserOutboxService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveDeleteEvent(UUID userId) {
         saveEvent(deleteRoutingKey, userId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void saveUserStationDeletedEvent(Long stationId){
+        saveEvent(userStationSuccessDeleteRoutingKey,stationId);
     }
 
     private void saveEvent(String routingKey, Object payloadDto) {
