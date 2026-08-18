@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.user.contracts.UserCreatedEvent;
+import org.example.user.contracts.UserStationFailedDeleteEvent;
 import org.example.user.contracts.UserUpdateEvent;
 import org.example.user.service.entity.OutboxEvent;
 import org.example.user.service.entity.OutboxStatus;
@@ -40,6 +41,9 @@ public class UserOutboxService {
     @Value("${user.success.station.delete}")
     private String userStationSuccessDeleteRoutingKey;
 
+    @Value("${user.failed.station.delete}")
+    private String userStationFailedDeleteRoutingKey;
+
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveCreateEvent(UserCreatedEvent event) {
         saveEvent(createRoutingKey, event);
@@ -58,6 +62,11 @@ public class UserOutboxService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveUserStationDeletedEvent(Long stationId){
         saveEvent(userStationSuccessDeleteRoutingKey,stationId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveUserStationFailedDeleteEvent(UserStationFailedDeleteEvent event){
+        saveEvent(userStationFailedDeleteRoutingKey,event);
     }
 
     private void saveEvent(String routingKey, Object payloadDto) {
