@@ -17,9 +17,6 @@ public class StationEventConsumer {
     @RabbitListener(queues = "${station.delete.queue}")
     public void handleDeleteStation(@Payload Long stationId) {
         log.info("Вычитано событие удаления СТО из очереди. ID станции: {}", stationId);
-
         deletionProcessor.deleteStationUsers(stationId);
-
-        log.info("Очистка пользователей для СТО ID: {} успешно завершена по событию из очереди", stationId);
     }
 }

@@ -5,9 +5,11 @@ import org.example.user.api.requestDto.OrderUserMappingRequest;
 import org.example.user.contracts.UserRegisterEvent;
 import org.example.user.service.dto.request.RequestAddUserDto;
 import org.example.user.service.dto.request.RequestUpdateUserDto;
+import org.example.user.service.entity.OutboxEvent;
 import org.example.user.service.entity.Role;
 import org.example.user.service.entity.User;
 import org.example.user.service.entity.Vehicle;
+import org.example.user.service.repository.UserRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.core.Message;
@@ -25,8 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,11 +37,20 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @MockitoSpyBean
     protected RabbitTemplate rabbitTemplate;
 
+    @MockitoSpyBean
+    private UserRepository userRepository;
+
     @Value("${user.queue.registration}")
     private String registrationQueue;
 
     @Value("${station.delete.queue}")
     private String stationDeleteQueue;
+
+    @Value("${user.success.station.delete}")
+    private String userStationSuccessDeleteRoutingKey;
+
+    @Value("${user.failed.station.delete}")
+    private String userStationFailedDeleteRoutingKey;
 
     private final UUID authUserId = UUID.randomUUID();
 
@@ -146,7 +156,7 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Ошибка 400 при更新 пользователя с невалидными данными")
+    @DisplayName("Ошибка 400 при обновлении пользователя с невалидными данными")
     void shouldReturnBadRequestOnInvalidUpdate() throws Exception {
         User savedUser = createAndSaveTestUser(100L, "Anna");
 
@@ -297,8 +307,8 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("RabbitMQ: Успешное удаление сотрудников при удалении автостанции")
-    void shouldHandleStationDeleteEvent() throws InterruptedException {
+    @DisplayName("RabbitMQ: Успешное удаление сотрудников при удалении автостанции с записью в Outbox")
+    void shouldHandleStationDeleteEvent() {
         createAndSaveTestUser(55L, "WorkerOnStation55");
         User userToKeep = createAndSaveTestUser(77L, "WorkerOnStation77");
 
@@ -310,6 +320,35 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                     List<User> remainingUsers = userRepository.findAll();
                     assertThat(remainingUsers).hasSize(1);
                     assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());
+
+                    List<OutboxEvent> events = outboxEventRepository.findAll();
+                    assertThat(events).anyMatch(event ->
+                            event.getRoutingKey().equals(userStationSuccessDeleteRoutingKey)
+                                    && event.getPayload().contains("55")
+                    );
+                });
+    }
+
+    @Test
+    @DisplayName("RabbitMQ: При ошибке удаления пользователей транзакция откатывается и сохраняется Failed-событие в Outbox")
+    void shouldSaveFailedEventToOutboxWhenDeletionFails() {
+        createAndSaveTestUser(55L, "WorkerOnStation55");
+
+        doThrow(new RuntimeException("Database error during delete"))
+                .when(userRepository).deleteAllByWorkplaceId(55L);
+
+        rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
+
+        Awaitility.await().atMost(5, TimeUnit.SECONDS)
+                .pollInterval(200, TimeUnit.MILLISECONDS)
+                .untilAsserted(() -> {
+                    assertThat(userRepository.findAll()).hasSize(1);
+
+                    List<OutboxEvent> events = outboxEventRepository.findAll();
+                    assertThat(events).anyMatch(event ->
+                            event.getRoutingKey().equals(userStationFailedDeleteRoutingKey)
+                                    && event.getPayload().contains("Database error during delete")
+                    );
                 });
     }
 
