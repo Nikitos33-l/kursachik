@@ -72,7 +72,7 @@
 
         <dependency>
             <groupId>org.example</groupId>
-            <artifactId>user-conracts</artifactId>
+            <artifactId>user-contracts</artifactId>
             <version>0.0.1-SNAPSHOT</version>
         </dependency>
 

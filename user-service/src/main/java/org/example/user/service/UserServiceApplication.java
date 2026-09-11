@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableRabbit
 @EnableScheduling
 public class UserServiceApplication {
-    //TODO Дополнить тесты после добавления саги
 
     public static void main(String[] args) {
         SpringApplication.run(UserServiceApplication.class, args);

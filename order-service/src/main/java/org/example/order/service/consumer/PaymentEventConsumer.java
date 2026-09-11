@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class OrderEventConsumer {
+public class PaymentEventConsumer {
     private final OrderManagementService orderManagementService;
 
     @RabbitListener(queues = "${order.paid.queue}")

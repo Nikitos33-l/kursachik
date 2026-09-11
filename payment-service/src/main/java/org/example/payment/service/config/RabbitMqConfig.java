@@ -7,17 +7,17 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMqConfig {
-    private final String orderEventExchange;
+    private final String paymentEventExchange;
 ;
 
-    public RabbitMqConfig(@Value("order.exchange") String orderEventExchange)
+    public RabbitMqConfig(@Value("payment.exchange") String orderEventExchange)
     {
-        this.orderEventExchange = orderEventExchange;
+        this.paymentEventExchange = orderEventExchange;
     }
 
     @Bean
     public TopicExchange topicExchange(){
-        return new TopicExchange(orderEventExchange);
+        return new TopicExchange(paymentEventExchange);
     }
 
 }

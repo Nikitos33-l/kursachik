@@ -4,9 +4,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.example.order.service.dto.OrderNotificationDto;
 import org.example.order.service.entity.OutboxEvent;
 import org.example.order.service.entity.OutboxStatus;
+import org.example.order.service.event.FailedStationOrdersDeletedEvent;
 import org.example.order.service.event.OrderStatusChangeEvent;
 import org.example.order.service.event.WorkerAssignmentEvent;
 import org.example.order.service.mapper.OrderEventMapper;
@@ -30,14 +30,39 @@ public class OutboxEventService {
     private final OrderEventMapper orderEventMapper;
 
     @Value("${notification.exchange}")
-    private String exchange;
+    private String notificationExchange;
+
+    @Value("${order.exchange}")
+    private String orderExchange;
 
     @Value("${notification.routing.key}")
-    private String routingKey;
+    private String notificationRoutingKey;
+
+    @Value("${order.success.station.delete.routing.key}")
+    private String successStationOrdersDeletedKey;
+
+    @Value("${order.failed.station.delete.routing.key}")
+    private String failedStationOrdersDeletedKey;
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void saveSuccessStationOrdersDeleted(Long stationId){
+        saveSingleEvent(successStationOrdersDeletedKey,stationId,orderExchange);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void saveFailedStationOrdersDeleted(FailedStationOrdersDeletedEvent event){
+        saveSingleEvent(failedStationOrdersDeletedKey,event,orderExchange);
+    }
+
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveOrderStatusEvent(OrderStatusChangeEvent event) {
-        saveSingleEvent(routingKey, orderEventMapper.toDto(event, event.userEmail()));
+        saveSingleEvent(notificationRoutingKey, orderEventMapper.toDto(event, event.userEmail()),notificationExchange);
+    }
+
+    private void saveSingleEvent(String routingKey, Object payloadDto,String exchange) {
+        outboxRepository.save(createOutboxEntity(routingKey, payloadDto,exchange));
+        log.debug("Событие сохранено в Outbox. Exchange: '{}', Routing key: '{}'", exchange, routingKey);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
@@ -47,19 +72,15 @@ public class OutboxEventService {
         }
 
         List<OutboxEvent> outboxEvents = events.stream()
-                .map(event -> createOutboxEntity(routingKey, orderEventMapper.toDto(event)))
+                .map(event -> createOutboxEntity(notificationRoutingKey, orderEventMapper.toDto(event),notificationExchange))
                 .toList();
 
         outboxRepository.saveAll(outboxEvents);
         log.debug("Сохранено {} событий назначения мастеров в Outbox для уведомлений", events.size());
     }
 
-    private void saveSingleEvent(String routingKey, OrderNotificationDto payloadDto) {
-        outboxRepository.save(createOutboxEntity(routingKey, payloadDto));
-        log.debug("Событие сохранено в Outbox. Exchange: '{}', Routing key: '{}'", exchange, routingKey);
-    }
 
-    private OutboxEvent createOutboxEntity(String routingKey, OrderNotificationDto payloadDto) {
+    private OutboxEvent createOutboxEntity(String routingKey, Object payloadDto,String exchange) {
         try {
             return OutboxEvent.builder()
                     .eventId(UUID.randomUUID())

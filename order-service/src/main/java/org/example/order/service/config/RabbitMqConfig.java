@@ -16,6 +16,9 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class RabbitMqConfig {
+
+    private final String orderEventsExchange;
+
     private final String notificationExchange;
     private final String userEventsExchange;
     private final String userDeleteQueue;
@@ -29,7 +32,7 @@ public class RabbitMqConfig {
     private final String stationDeleteQueue;
     private final String stationDeleteRoutingKey;
 
-    private final String orderEventsExchange;
+    private final String paymentEventsExchange;
     private final String orderPaidQueue;
     private final String orderPaidRoutingKey;
 
@@ -42,7 +45,8 @@ public class RabbitMqConfig {
     private final String orderPaidDlq;
 
     public RabbitMqConfig
-            (@Value("${notification.exchange}") String exchange,
+            (@Value("${order.exchange}") String orderEventsExchange,
+             @Value("${notification.exchange}") String exchange,
              @Value("${user.event.exchange}") String userEventsExchange,
              @Value("${user.delete.queue}") String userDeleteQueue,
              @Value("${user.delete.routing.key}") String userDeleteRoutingKey,
@@ -54,7 +58,7 @@ public class RabbitMqConfig {
              @Value("${station.exchange.name}") String stationEventExchange,
              @Value("${station.delete.queue}") String stationDeleteQueue,
              @Value("${station.delete.routing.key}") String stationDeleteRoutingKey,
-             @Value("${order.exchange}") String orderEventsExchange,
+             @Value("${payment.exchange}") String paymentEventsExchange,
              @Value("${order.paid.queue}") String orderPaidQueue,
              @Value("${order.paid.routing.key}") String orderPaidRoutingKey,
              @Value("${dead.letter.exchange.name}") String deadLetterExchange,
@@ -64,6 +68,7 @@ public class RabbitMqConfig {
              @Value("${station.services.updated.routing.key}") String stationServicesUpdatedRoutingKey,
              @Value("${order.dlq.station-services-updated}") String stationServicesUpdatedDlq,
              @Value("${order.dlq.order-paid}") String orderPaidDlq) {
+        this.orderEventsExchange = orderEventsExchange;
 
         this.notificationExchange = exchange;
         this.userEventsExchange = userEventsExchange;
@@ -77,7 +82,7 @@ public class RabbitMqConfig {
         this.stationEventExchange = stationEventExchange;
         this.stationDeleteQueue = stationDeleteQueue;
         this.stationDeleteRoutingKey = stationDeleteRoutingKey;
-        this.orderEventsExchange = orderEventsExchange;
+        this.paymentEventsExchange = paymentEventsExchange;
         this.orderPaidQueue = orderPaidQueue;
         this.orderPaidRoutingKey = orderPaidRoutingKey;
         this.deadLetterExchange = deadLetterExchange;
@@ -87,6 +92,11 @@ public class RabbitMqConfig {
         this.stationServicesUpdatedRoutingKey = stationServicesUpdatedRoutingKey;
         this.stationServicesUpdatedDlq = stationServicesUpdatedDlq;
         this.orderPaidDlq = orderPaidDlq;
+    }
+
+    @Bean
+    TopicExchange orderEventsExchange(){
+        return new TopicExchange(orderEventsExchange,true,false);
     }
 
     @Bean
@@ -105,8 +115,8 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    TopicExchange orderEventExchange(){
-        return new TopicExchange(orderEventsExchange,true,false);
+    TopicExchange paymentEventExchange(){
+        return new TopicExchange(paymentEventsExchange,true,false);
     }
 
     @Bean
@@ -167,7 +177,7 @@ public class RabbitMqConfig {
 
     @Bean
     Binding orderPaidBinding(){
-        return BindingBuilder.bind(orderPaidQueue()).to(orderEventExchange()).with(orderPaidRoutingKey);
+        return BindingBuilder.bind(orderPaidQueue()).to(paymentEventExchange()).with(orderPaidRoutingKey);
     }
 
     @Bean

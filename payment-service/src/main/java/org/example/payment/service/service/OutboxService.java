@@ -21,7 +21,7 @@ public class OutboxService {
     private final OutboxEventRepository outboxEventRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${order.exchange}")
+    @Value("${payment.exchange}")
     private String exchange;
 
     @Value("${order.paid.routing.key}")

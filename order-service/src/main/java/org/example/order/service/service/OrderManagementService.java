@@ -51,11 +51,11 @@ public class OrderManagementService {
     private final OrderItemMapper orderItemMapper;
     private final UserServiceFeignClient userServiceClient;
     private final OrderRepository orderRepository;
-    private final OrderStatusRepository orderStatusRepository;
     private final StationServiceClient stationServiceClient;
     private final StationIntegrationWrapper stationIntegrationWrapper;
     private final UserIntegrationWrapper userIntegrationWrapper;
     private final CacheManager cacheManager;
+    private final OutboxEventService eventService;
 
     private final OrderCommandService orderCommandService;
 
@@ -198,7 +198,9 @@ public class OrderManagementService {
     @Transactional
     public void deleteByStation(Long id) {
         List<Order> orders = orderRepository.deleteAllByStationId(id);
+        eventService.saveSuccessStationOrdersDeleted(id);
         clearOrderCache(orders);
+        log.info("Пользователи со станции с id {} успешно были удалены",id);
     }
 
     @Transactional
