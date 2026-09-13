@@ -9,7 +9,8 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableDiscoveryClient
 @EnableScheduling
 public class StationServiceApplication {
-
+    //TODO закончить формирование саги
+    //TODO исправить тесты
     public static void main(String[] args) {
         SpringApplication.run(StationServiceApplication.class, args);
     }

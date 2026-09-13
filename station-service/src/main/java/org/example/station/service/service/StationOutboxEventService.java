@@ -33,16 +33,16 @@ public class StationOutboxEventService {
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveStationServicesUpdatedEvent(Long stationId) {
         log.debug("Формирование Outbox события обновления услуг для СТО ID: {}", stationId);
-        saveEvent(stationId, servicesUpdatedRoutingKey);
+        saveEvent(stationId, servicesUpdatedRoutingKey,null);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void saveStationDeleteEvent(Long stationId) {
+    public void saveStationDeleteEvent(Long stationId,String sagaId) {
         log.debug("Формирование Outbox события удаления для СТО ID: {}", stationId);
-        saveEvent(stationId, stationDeleteRoutingKey);
+        saveEvent(stationId, stationDeleteRoutingKey,sagaId);
     }
 
-    private void saveEvent(Long stationId, String routingKey) {
+    private void saveEvent(Long stationId, String routingKey,String correlationId) {
         try {
             String payloadJson = objectMapper.writeValueAsString(stationId);
 
@@ -53,6 +53,7 @@ public class StationOutboxEventService {
                     .payload(payloadJson)
                     .status(OutboxStatus.PENDING)
                     .createdAt(LocalDateTime.now())
+                    .correlationId(correlationId)
                     .build();
 
             eventRepository.save(outboxEvent);

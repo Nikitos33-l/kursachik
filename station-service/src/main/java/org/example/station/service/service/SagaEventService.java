@@ -21,14 +21,14 @@ public class SagaEventService {
     private final SagaRepository sagaRepository;
 
     @Transactional
-    public void startStationDeleteSaga(Long stationId){
+    public String startStationDeleteSaga(Long stationId){
         Map<String,Object> payload = new HashMap<>();
         payload.put("orderServiceDelete",false);
         payload.put("userServiceDelete",false);
-        startSaga(stationId,TypeSagaEvent.STATION_DELETE,payload);
+        return startSaga(stationId,TypeSagaEvent.STATION_DELETE,payload);
     }
 
-    private void startSaga(Long stationId, TypeSagaEvent sagaEvent, Map<String,Object> payload){
+    private String startSaga(Long stationId, TypeSagaEvent sagaEvent, Map<String,Object> payload){
         SagaEvent saga = SagaEvent.builder()
                 .targetId(stationId)
                 .eventType(sagaEvent)
@@ -37,8 +37,9 @@ public class SagaEventService {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        sagaRepository.save(saga);
+        SagaEvent savedSaga = sagaRepository.save(saga);
         log.info("Событие саги успешно сохранено в БД stationId:{}",stationId);
+        return savedSaga.getId().toString();
     }
 
 }

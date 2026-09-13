@@ -68,12 +68,16 @@ public class OutboxEventScheduler {
         log.debug("Статус события Outbox ID: {} успешно изменен в БД на PROCESSED", event.getEventId());
     }
 
-    private Message buildMessage(OutboxEvent event){
-        return MessageBuilder.withBody(event.getPayload().getBytes())
+    private Message buildMessage(OutboxEvent event) {
+        MessageBuilder messageBuilder = (MessageBuilder) MessageBuilder.withBody(event.getPayload().getBytes())
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
-                .setMessageId(event.getEventId().toString())
-                .build();
+                .setMessageId(event.getEventId().toString());
 
+        if (event.getCorrelationId() != null && !event.getCorrelationId().isBlank()) {
+            messageBuilder.setCorrelationId(event.getCorrelationId());
+        }
+
+        return messageBuilder.build();
     }
 
 }

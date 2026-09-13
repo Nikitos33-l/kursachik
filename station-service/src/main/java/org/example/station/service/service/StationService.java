@@ -82,8 +82,8 @@ public class StationService {
         log.warn("Инициация удаления СТО ID: {}", id);
         Station station = getStationById(id);
         station.setStatus(Station.StationStatus.DELETING);
-        sagaEventService.startStationDeleteSaga(id);
-        outboxEventService.saveStationDeleteEvent(id);
+        String sagaId = sagaEventService.startStationDeleteSaga(id);
+        outboxEventService.saveStationDeleteEvent(id,sagaId);
         log.info("СТО ID: {} инициализирована для удаления из БД, событие удаления успешно сохранено в Outbox", id);
 
     }
