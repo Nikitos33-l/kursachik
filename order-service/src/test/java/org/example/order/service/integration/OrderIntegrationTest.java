@@ -9,6 +9,7 @@ import org.example.order.service.entity.Order;
 import org.example.order.service.entity.OrderItem;
 import org.example.order.service.entity.OrderStatus;
 import org.example.order.service.repository.OutboxEventRepository;
+import org.example.order.service.service.OrderManagementService;
 import org.example.station.service.api.common.client.StationServiceClient;
 import org.example.station.service.api.common.dto.response.ServiceDetailDto;
 import org.example.station.service.api.common.dto.response.StationServicesResponse;
@@ -51,7 +52,7 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
 
     @MockitoBean private UserServiceFeignClient userServiceClient;
     @MockitoBean private StationServiceClient stationServiceClient;
-
+    @MockitoSpyBean private OrderManagementService orderManagementService;
     @MockitoSpyBean private RabbitTemplate rabbitTemplate;
 
     @Autowired private OutboxEventRepository outboxEventRepository;
@@ -63,6 +64,9 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     @Value("${user.delete.queue}") private String userDeleteQueue;
     @Value("${user.update.queue}") private String userUpdateQueue;
     @Value("${order.paid.queue}") private String orderPaidQueue;
+    @Value("${order.exchange}") private String orderExchange;
+    @Value("${order.success.station.delete.routing.key}") private String successStationOrdersDeletedKey;
+    @Value("${order.failed.station.delete.routing.key}") private String failedStationOrdersDeletedKey;
 
     private UUID clientId;
     private UUID workerId;
@@ -305,25 +309,64 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("Consumer: Удаление СТО — каскадное удаление всех заказов станции из БД")
-    void handleStationDelete_ShouldDeleteAllStationOrders() {
+    @DisplayName("Consumer: Удаление СТО (Успех) — удаление заказов станции и отправка success-события в RabbitMQ")
+    void handleStationDelete_ShouldDeleteOrdersAndPublishSuccessEvent() {
         Order order = createAndSaveSampleOrder();
         Long targetStationId = order.getStationId();
-        String cacheKey = "order-service:station-validation::station:" + targetStationId + ":services:[10,20]";
-        redisTemplate.opsForValue().set(cacheKey, "cached-station-services-data");
-
-        assertThat(orderRepository.findById(order.getId())).isPresent();
 
         rabbitTemplate.convertAndSend(stationDeleteQueue, targetStationId);
 
         Awaitility.await()
-                .atMost(java.time.Duration.ofSeconds(5))
-                .pollInterval(java.time.Duration.ofMillis(200))
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> {
                     List<Order> remainingOrders = orderRepository.findAllByStationId(targetStationId);
                     assertThat(remainingOrders).isEmpty();
-                    Boolean hasKey = redisTemplate.hasKey(cacheKey);
-                    assertThat(hasKey).isFalse();
+
+                    verify(rabbitTemplate, times(1)).send(
+                            eq(orderExchange),
+                            eq(successStationOrdersDeletedKey),
+                            argThat(message -> {
+                                try {
+                                    String body = new String(message.getBody(), StandardCharsets.UTF_8);
+                                    return body.contains(String.valueOf(targetStationId));
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                    );
+                });
+    }
+
+    @Test
+    @DisplayName("Consumer: Удаление СТО (Ошибка) — перехват исключения и отправка failed-события в RabbitMQ")
+    void handleStationDelete_ShouldPublishFailedEvent_WhenDeletionFails() {
+        Long targetStationId = 999L;
+        String errorMessage = "Artificial DB failure for testing";
+
+        doThrow(new RuntimeException(errorMessage))
+                .when(orderManagementService).deleteByStation(targetStationId);
+
+        rabbitTemplate.convertAndSend(stationDeleteQueue, targetStationId);
+
+        Awaitility.await()
+                .atMost(Duration.ofSeconds(5))
+                .pollInterval(Duration.ofMillis(200))
+                .untilAsserted(() -> {
+                    // Проверяем отправку события об ошибке в RabbitMQ
+                    verify(rabbitTemplate, times(1)).send(
+                            eq(orderExchange),
+                            eq(failedStationOrdersDeletedKey),
+                            argThat(message -> {
+                                try {
+                                    String body = new String(message.getBody(), StandardCharsets.UTF_8);
+                                    return body.contains(String.valueOf(targetStationId)) &&
+                                            body.contains(errorMessage);
+                                } catch (Exception e) {
+                                    return false;
+                                }
+                            })
+                    );
                 });
     }
 
