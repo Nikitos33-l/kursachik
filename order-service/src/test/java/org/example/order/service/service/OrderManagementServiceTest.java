@@ -8,6 +8,7 @@ import org.example.order.service.dto.request.RequestVehicleDto;
 import org.example.order.service.dto.response.ResponseOrderDto;
 import org.example.order.service.dto.response.ResponseOrderSummaryDto;
 import org.example.order.service.entity.Order;
+import org.example.order.service.entity.OrderItem;
 import org.example.order.service.entity.OrderStatus;
 import org.example.order.service.mapper.OrderItemMapper;
 import org.example.order.service.mapper.OrderMapper;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
 import java.math.BigDecimal;
@@ -51,6 +53,7 @@ class OrderManagementServiceTest {
     @Mock private StationIntegrationWrapper stationIntegrationWrapper;
     @Mock private UserIntegrationWrapper userIntegrationWrapper;
     @Mock private CacheManager cacheManager;
+    @Mock private OutboxEventService eventService;
 
     @Mock private OrderCommandService orderCommandService;
 
@@ -278,6 +281,106 @@ class OrderManagementServiceTest {
                 () -> orderManagementService.updateOrder(requestDto, orderId));
 
         verifyNoInteractions(orderCommandService);
+    }
+
+    @Test
+    @DisplayName("getTotal: Успешный подсчет общей стоимости заказа")
+    void getTotal_Success() {
+        Long orderId = 1L;
+        Order order = createOrder(orderId);
+
+        OrderItem item1 = new OrderItem();
+        item1.setPriceAtOrder(new BigDecimal("50.00"));
+
+        OrderItem item2 = new OrderItem();
+        item2.setPriceAtOrder(new BigDecimal("35.50"));
+
+        order.setOrderItems(List.of(item1, item2));
+
+        when(orderRepository.findById(orderId)).thenReturn(Optional.of(order));
+
+        var response = orderManagementService.getTotal(orderId);
+
+        assertEquals(new BigDecimal("85.50"), response.total());
+    }
+
+    @Test
+    @DisplayName("getTotal: Ошибка, если заказ не найден")
+    void getTotal_OrderNotFound() {
+        when(orderRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class,
+                () -> orderManagementService.getTotal(99L));
+    }
+
+    @Test
+    @DisplayName("deleteByStation: Успешное удаление заказов, отправка события и точечная очистка кэша")
+    void deleteByStation_Success() {
+        Long stationId = 10L;
+        Order order1 = createOrder(1L);
+        Order order2 = createOrder(2L);
+        List<Order> orders = List.of(order1, order2);
+
+        Cache cacheMock = mock(Cache.class);
+
+        when(orderRepository.deleteAllByStationId(stationId)).thenReturn(orders);
+        when(cacheManager.getCache(anyString())).thenReturn(cacheMock);
+
+        orderManagementService.deleteByStation(stationId);
+
+        verify(orderRepository).deleteAllByStationId(stationId);
+        verify(eventService).saveSuccessStationOrdersDeleted(stationId);
+        verify(cacheManager).getCache(anyString());
+        verify(cacheMock).evict(1L);
+        verify(cacheMock).evict(2L);
+    }
+
+    @Test
+    @DisplayName("deleteByStation: Если заказов нет, кэш не запрашивается, но событие Outbox сохраняется")
+    void deleteByStation_EmptyOrders() {
+        Long stationId = 10L;
+
+        when(orderRepository.deleteAllByStationId(stationId)).thenReturn(Collections.emptyList());
+
+        orderManagementService.deleteByStation(stationId);
+
+        verify(orderRepository).deleteAllByStationId(stationId);
+        verify(eventService).saveSuccessStationOrdersDeleted(stationId);
+        verifyNoInteractions(cacheManager);
+    }
+
+    @Test
+    @DisplayName("deleteOrderByClient: Успешное удаление заказов клиента и очистка кэша")
+    void deleteOrderByClient_Success() {
+        UUID clientId = UUID.randomUUID();
+        Order order = createOrder(1L);
+        List<Order> orders = List.of(order);
+
+        Cache cacheMock = mock(Cache.class);
+
+        when(orderRepository.deleteAllByClientId(clientId)).thenReturn(orders);
+        when(cacheManager.getCache(anyString())).thenReturn(cacheMock);
+
+        orderManagementService.deleteOrderByClient(clientId);
+
+        verify(orderRepository).deleteAllByClientId(clientId);
+        verify(cacheManager).getCache(anyString());
+        verify(cacheMock).evict(1L);
+        verifyNoInteractions(eventService);
+    }
+
+    @Test
+    @DisplayName("deleteOrderByClient: Если кэш отключен или null, не должно падать с NullPointerException")
+    void deleteOrderByClient_CacheIsNull() {
+        UUID clientId = UUID.randomUUID();
+        Order order = createOrder(1L);
+        List<Order> orders = List.of(order);
+
+        when(orderRepository.deleteAllByClientId(clientId)).thenReturn(orders);
+        when(cacheManager.getCache(anyString())).thenReturn(null);
+
+        assertDoesNotThrow(() -> orderManagementService.deleteOrderByClient(clientId));
+        verify(orderRepository).deleteAllByClientId(clientId);
     }
 
     private OrderStatus createStatus(String code) {

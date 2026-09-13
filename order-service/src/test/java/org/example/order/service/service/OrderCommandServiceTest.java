@@ -42,7 +42,6 @@ class OrderCommandServiceTest {
     @Test
     @DisplayName("saveNewOrder: Успешное сохранение заказа и создание Outbox события")
     void saveNewOrder_Success() {
-        // Given
         UserPrincipal principal = new UserPrincipal(clientId, "client@test.com", null, List.of());
         VehicleDto vehicle = new VehicleDto(1L, "Audi", "A6", "1111-AA-7");
         List<ServiceDetailDto> services = List.of(
@@ -91,7 +90,6 @@ class OrderCommandServiceTest {
     @Test
     @DisplayName("updateOrderStatus: Успешная смена статуса существующего заказа")
     void updateOrderStatus_Success() {
-        // Given
         Order dbOrder = new Order();
         dbOrder.setId(orderId);
         dbOrder.setClientId(clientId);
@@ -116,7 +114,6 @@ class OrderCommandServiceTest {
     @Test
     @DisplayName("updateOrderDetails: Изменение статуса + полная очистка списка мастеров")
     void updateOrderDetails_StatusChanged_And_ClearWorkers() {
-        // Given
         Order order = new Order();
         order.setId(orderId);
         order.setClientId(clientId);

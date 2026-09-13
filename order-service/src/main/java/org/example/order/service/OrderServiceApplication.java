@@ -10,9 +10,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @SpringBootApplication
 @EnableDiscoveryClient
 @EnableRabbit
+@EnableFeignClients
 @EnableScheduling
 public class OrderServiceApplication {
-
+    //TODO написать тесты для новых изменений в рамках добавления саги
     public static void main(String[] args) {
         SpringApplication.run(OrderServiceApplication.class, args);
     }
