@@ -12,7 +12,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableRabbit
 @EnableScheduling
 public class UserServiceApplication {
-    //TODO настроить отправку correlationId
 
     public static void main(String[] args) {
         SpringApplication.run(UserServiceApplication.class, args);
