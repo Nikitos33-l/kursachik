@@ -10,6 +10,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.UUID;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
@@ -32,26 +34,30 @@ class StationDeletionProcessorTest {
     @DisplayName("Успешное удаление пользователей станции без записи ошибок в Outbox")
     void shouldSuccessfullyDeleteStationUsers() {
         Long stationId = 1L;
+        String correlationId = UUID.randomUUID().toString();
 
-        stationDeletionProcessor.deleteStationUsers(stationId);
+        stationDeletionProcessor.deleteStationUsers(stationId, correlationId);
 
-        verify(userService, times(1)).deleteByWorkplace(stationId);
+        verify(userService, times(1)).deleteByWorkplace(stationId, correlationId);
         verifyNoInteractions(userOutboxService);
     }
 
     @Test
-    @DisplayName("При ошибке удаления пользователей сохраняется сбойное событие с верным ID станции и текстом ошибки")
+    @DisplayName("При ошибке удаления пользователей сохраняется сбойное событие с верным ID станции, текстом ошибки и correlationId")
     void shouldSaveFailedEventToOutboxWhenDeletionFails() {
         Long stationId = 1L;
         String errorMessage = "Database connection timeout";
+        String correlationId = UUID.randomUUID().toString();
+
         doThrow(new RuntimeException(errorMessage))
-                .when(userService).deleteByWorkplace(stationId);
+                .when(userService).deleteByWorkplace(stationId, correlationId);
 
-        stationDeletionProcessor.deleteStationUsers(stationId);
+        stationDeletionProcessor.deleteStationUsers(stationId, correlationId);
 
-        verify(userService, times(1)).deleteByWorkplace(stationId);
+        verify(userService, times(1)).deleteByWorkplace(stationId, correlationId);
 
-        verify(userOutboxService, times(1)).saveUserStationFailedDeleteEvent(failedEventCaptor.capture());
+        verify(userOutboxService, times(1))
+                .saveUserStationFailedDeleteEvent(failedEventCaptor.capture(), eq(correlationId));
 
         UserStationFailedDeleteEvent capturedEvent = failedEventCaptor.getValue();
         assertThat(capturedEvent.stationId()).isEqualTo(stationId);

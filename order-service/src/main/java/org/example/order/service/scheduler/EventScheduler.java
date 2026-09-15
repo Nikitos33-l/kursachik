@@ -69,7 +69,7 @@ public class EventScheduler {
     }
 
     private Message buildMessage(OutboxEvent event){
-        MessageBuilder messageBuilder = (MessageBuilder) MessageBuilder.withBody(event.getPayload().getBytes())
+        MessageBuilder messageBuilder = (MessageBuilder) MessageBuilder.withBody(event.getPayload().getBytes(StandardCharsets.UTF_8))
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
                 .setMessageId(event.getEventId().toString());
 

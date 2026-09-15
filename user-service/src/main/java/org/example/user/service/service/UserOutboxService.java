@@ -46,30 +46,30 @@ public class UserOutboxService {
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveCreateEvent(UserCreatedEvent event) {
-        saveEvent(createRoutingKey, event);
+        saveEvent(createRoutingKey, event,null);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveUpdateEvent(UserUpdateEvent event) {
-        saveEvent(updateRoutingKey, event);
+        saveEvent(updateRoutingKey, event,null);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveDeleteEvent(UUID userId) {
-        saveEvent(deleteRoutingKey, userId);
+        saveEvent(deleteRoutingKey, userId,null);
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void saveUserStationDeletedEvent(Long stationId){
-        saveEvent(userStationSuccessDeleteRoutingKey,stationId);
+    public void saveUserStationDeletedEvent(Long stationId,String correlationId){
+        saveEvent(userStationSuccessDeleteRoutingKey,stationId,correlationId);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveUserStationFailedDeleteEvent(UserStationFailedDeleteEvent event){
-        saveEvent(userStationFailedDeleteRoutingKey,event);
+    public void saveUserStationFailedDeleteEvent(UserStationFailedDeleteEvent event,String correlationId){
+        saveEvent(userStationFailedDeleteRoutingKey,event,correlationId);
     }
 
-    private void saveEvent(String routingKey, Object payloadDto) {
+    private void saveEvent(String routingKey, Object payloadDto,String correlationId) {
         try {
             String jsonPayload = objectMapper.writeValueAsString(payloadDto);
 
@@ -78,6 +78,7 @@ public class UserOutboxService {
                     .exchange(exchange)
                     .routingKey(routingKey)
                     .payload(jsonPayload)
+                    .correlationId(correlationId)
                     .status(OutboxStatus.PENDING)
                     .createdAt(LocalDateTime.now())
                     .build();

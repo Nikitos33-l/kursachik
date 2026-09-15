@@ -12,14 +12,14 @@ public class StationDeletionProcessor {
     private final UserService userService;
     private final UserOutboxService userOutboxService;
 
-    public void deleteStationUsers(Long stationId){
+    public void deleteStationUsers(Long stationId,String correlationId){
         try {
-            userService.deleteByWorkplace(stationId);
+            userService.deleteByWorkplace(stationId,correlationId);
         }
         catch (Exception e){
             log.error("Сбой удаления пользователей для СТО ID: {}. Пишем FAILED в Outbox", stationId);
             UserStationFailedDeleteEvent event = new UserStationFailedDeleteEvent(stationId,e.getMessage());
-            userOutboxService.saveUserStationFailedDeleteEvent(event);
+            userOutboxService.saveUserStationFailedDeleteEvent(event,correlationId);
         }
     }
 }

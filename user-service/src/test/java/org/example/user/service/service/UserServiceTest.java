@@ -289,9 +289,11 @@ public class UserServiceTest {
     @DisplayName("Успешное каскадное удаление пользователей по ID станции")
     void deleteByWorkplace_Success() {
         Long stationId = 1L;
+        String correlationId = UUID.randomUUID().toString();
 
-        userService.deleteByWorkplace(stationId);
+        userService.deleteByWorkplace(stationId, correlationId);
 
         verify(userRepository, times(1)).deleteAllByWorkplaceId(stationId);
+        verify(userOutboxService, times(1)).saveUserStationDeletedEvent(stationId, correlationId);
     }
 }

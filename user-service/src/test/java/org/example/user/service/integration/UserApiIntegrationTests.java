@@ -309,10 +309,16 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @Test
     @DisplayName("RabbitMQ: Успешное удаление сотрудников при удалении автостанции с записью в Outbox")
     void shouldHandleStationDeleteEvent() {
-        createAndSaveTestUser(55L, "WorkerOnStation55");
+        Long stationId = 55L;
+        createAndSaveTestUser(stationId, "WorkerOnStation55");
         User userToKeep = createAndSaveTestUser(77L, "WorkerOnStation77");
 
-        rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
+        String correlationId = UUID.randomUUID().toString();
+
+        rabbitTemplate.convertAndSend(stationDeleteQueue, (Object) stationId, message -> {
+            message.getMessageProperties().setCorrelationId(correlationId);
+            return message;
+        });
 
         Awaitility.await().atMost(5, TimeUnit.SECONDS)
                 .pollInterval(200, TimeUnit.MILLISECONDS)
@@ -322,9 +328,10 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                     assertThat(remainingUsers.get(0).getId()).isEqualTo(userToKeep.getId());
 
                     List<OutboxEvent> events = outboxEventRepository.findAll();
-                    assertThat(events).anyMatch(event ->
-                            event.getRoutingKey().equals(userStationSuccessDeleteRoutingKey)
-                                    && event.getPayload().contains("55")
+                    assertThat(events).anyMatch(e ->
+                            e.getRoutingKey().equals(userStationSuccessDeleteRoutingKey)
+                                    && e.getPayload().contains("55")
+                                    && e.getCorrelationId().equals(correlationId)
                     );
                 });
     }
@@ -332,12 +339,18 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
     @Test
     @DisplayName("RabbitMQ: При ошибке удаления пользователей транзакция откатывается и сохраняется Failed-событие в Outbox")
     void shouldSaveFailedEventToOutboxWhenDeletionFails() {
-        createAndSaveTestUser(55L, "WorkerOnStation55");
+        Long stationId = 55L;
+        createAndSaveTestUser(stationId, "WorkerOnStation55");
+
+        String correlationId = UUID.randomUUID().toString();
 
         doThrow(new RuntimeException("Database error during delete"))
-                .when(userRepository).deleteAllByWorkplaceId(55L);
+                .when(userRepository).deleteAllByWorkplaceId(stationId);
 
-        rabbitTemplate.convertAndSend(stationDeleteQueue, 55L);
+        rabbitTemplate.convertAndSend(stationDeleteQueue, (Object) stationId, message -> {
+            message.getMessageProperties().setCorrelationId(correlationId);
+            return message;
+        });
 
         Awaitility.await().atMost(5, TimeUnit.SECONDS)
                 .pollInterval(200, TimeUnit.MILLISECONDS)
@@ -345,9 +358,10 @@ class UserApiIntegrationTests extends BaseIntegrationTest {
                     assertThat(userRepository.findAll()).hasSize(1);
 
                     List<OutboxEvent> events = outboxEventRepository.findAll();
-                    assertThat(events).anyMatch(event ->
-                            event.getRoutingKey().equals(userStationFailedDeleteRoutingKey)
-                                    && event.getPayload().contains("Database error during delete")
+                    assertThat(events).anyMatch(e ->
+                            e.getRoutingKey().equals(userStationFailedDeleteRoutingKey)
+                                    && e.getPayload().contains("Database error during delete")
+                                    && e.getCorrelationId().equals(correlationId)
                     );
                 });
     }

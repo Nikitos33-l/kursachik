@@ -32,6 +32,9 @@ public class OutboxEvent {
     @Column(name = "payload", nullable = false, columnDefinition = "TEXT")
     private String payload;
 
+    @Column(name = "correlation_id")
+    private String correlationId;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private OutboxStatus status = OutboxStatus.PENDING;

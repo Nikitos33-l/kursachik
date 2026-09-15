@@ -279,10 +279,10 @@ public class UserService {
                     @CacheEvict(value = CacheNames.WORKERS_CACHE, key = "#id")
             }
     )
-    public void deleteByWorkplace(Long id) {
+    public void deleteByWorkplace(Long id,String correlationId) {
         log.warn("ВНИМАНИЕ: Запущено каскадное удаление всех пользователей для СТО ID: {}", id);
         userRepository.deleteAllByWorkplaceId(id);
-        userOutboxService.saveUserStationDeletedEvent(id);
+        userOutboxService.saveUserStationDeletedEvent(id,correlationId);
         log.info("Все пользователи для СТО ID: {} успешно удалены", id);
     }
 

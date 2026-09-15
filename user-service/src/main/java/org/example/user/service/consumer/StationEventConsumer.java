@@ -20,6 +20,6 @@ public class StationEventConsumer {
     public void handleDeleteStation(@Payload Long stationId,
                                     @Header(value = AmqpHeaders.CORRELATION_ID) String correlationId) {
         log.info("Вычитано событие удаления СТО из очереди. ID станции: {}", stationId);
-        deletionProcessor.deleteStationUsers(stationId);
+        deletionProcessor.deleteStationUsers(stationId,correlationId);
     }
 }
