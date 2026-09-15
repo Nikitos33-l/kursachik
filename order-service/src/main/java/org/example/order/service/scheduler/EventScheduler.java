@@ -69,10 +69,14 @@ public class EventScheduler {
     }
 
     private Message buildMessage(OutboxEvent event){
-        return MessageBuilder
-                .withBody(event.getPayload().getBytes(StandardCharsets.UTF_8))
+        MessageBuilder messageBuilder = (MessageBuilder) MessageBuilder.withBody(event.getPayload().getBytes())
                 .setContentType(MessageProperties.CONTENT_TYPE_JSON)
-                .setMessageId(event.getEventId().toString())
-                .build();
+                .setMessageId(event.getEventId().toString());
+
+        if (event.getCorrelationId() != null && !event.getCorrelationId().isBlank()) {
+            messageBuilder.setCorrelationId(event.getCorrelationId());
+        }
+
+        return messageBuilder.build();
     }
 }

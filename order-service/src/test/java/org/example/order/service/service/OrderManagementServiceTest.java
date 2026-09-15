@@ -317,6 +317,7 @@ class OrderManagementServiceTest {
     @DisplayName("deleteByStation: Успешное удаление заказов, отправка события и точечная очистка кэша")
     void deleteByStation_Success() {
         Long stationId = 10L;
+        String correlationId = UUID.randomUUID().toString();
         Order order1 = createOrder(1L);
         Order order2 = createOrder(2L);
         List<Order> orders = List.of(order1, order2);
@@ -326,10 +327,10 @@ class OrderManagementServiceTest {
         when(orderRepository.deleteAllByStationId(stationId)).thenReturn(orders);
         when(cacheManager.getCache(anyString())).thenReturn(cacheMock);
 
-        orderManagementService.deleteByStation(stationId);
+        orderManagementService.deleteByStation(stationId, correlationId);
 
         verify(orderRepository).deleteAllByStationId(stationId);
-        verify(eventService).saveSuccessStationOrdersDeleted(stationId);
+        verify(eventService).saveSuccessStationOrdersDeleted(stationId, correlationId);
         verify(cacheManager).getCache(anyString());
         verify(cacheMock).evict(1L);
         verify(cacheMock).evict(2L);
@@ -339,13 +340,14 @@ class OrderManagementServiceTest {
     @DisplayName("deleteByStation: Если заказов нет, кэш не запрашивается, но событие Outbox сохраняется")
     void deleteByStation_EmptyOrders() {
         Long stationId = 10L;
+        String correlationId = UUID.randomUUID().toString();
 
         when(orderRepository.deleteAllByStationId(stationId)).thenReturn(Collections.emptyList());
 
-        orderManagementService.deleteByStation(stationId);
+        orderManagementService.deleteByStation(stationId, correlationId);
 
         verify(orderRepository).deleteAllByStationId(stationId);
-        verify(eventService).saveSuccessStationOrdersDeleted(stationId);
+        verify(eventService).saveSuccessStationOrdersDeleted(stationId, correlationId);
         verifyNoInteractions(cacheManager);
     }
 

@@ -21,7 +21,7 @@ public class StationEventConsumer {
     public void handleStationDelete(@Payload Long stationId,
                                     @Header(value = AmqpHeaders.CORRELATION_ID) String correlationId) {
         log.info("[RABBITMQ CONSUMER] Получено событие удаления СТО. ID: {}", stationId);
-        deleteProcessor.deleteStationOrders(stationId);
+        deleteProcessor.deleteStationOrders(stationId,correlationId);
     }
 
     @RabbitListener(queues = "${station.services.updated.queue}")

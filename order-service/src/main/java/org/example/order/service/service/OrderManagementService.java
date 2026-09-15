@@ -196,9 +196,9 @@ public class OrderManagementService {
     }
 
     @Transactional
-    public void deleteByStation(Long id) {
+    public void deleteByStation(Long id,String correlationId) {
         List<Order> orders = orderRepository.deleteAllByStationId(id);
-        eventService.saveSuccessStationOrdersDeleted(id);
+        eventService.saveSuccessStationOrdersDeleted(id,correlationId);
         clearOrderCache(orders);
         log.info("Пользователи со станции с id {} успешно были удалены",id);
     }

@@ -45,23 +45,23 @@ public class OutboxEventService {
     private String failedStationOrdersDeletedKey;
 
     @Transactional(propagation = Propagation.REQUIRED)
-    public void saveSuccessStationOrdersDeleted(Long stationId){
-        saveSingleEvent(successStationOrdersDeletedKey,stationId,orderExchange);
+    public void saveSuccessStationOrdersDeleted(Long stationId,String correlationId){
+        saveSingleEvent(successStationOrdersDeletedKey,stationId,orderExchange,correlationId);
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void saveFailedStationOrdersDeleted(FailedStationOrdersDeletedEvent event){
-        saveSingleEvent(failedStationOrdersDeletedKey,event,orderExchange);
+    public void saveFailedStationOrdersDeleted(FailedStationOrdersDeletedEvent event,String correlationId){
+        saveSingleEvent(failedStationOrdersDeletedKey,event,orderExchange,correlationId);
     }
 
 
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveOrderStatusEvent(OrderStatusChangeEvent event) {
-        saveSingleEvent(notificationRoutingKey, orderEventMapper.toDto(event, event.userEmail()),notificationExchange);
+        saveSingleEvent(notificationRoutingKey, orderEventMapper.toDto(event, event.userEmail()),notificationExchange,null);
     }
 
-    private void saveSingleEvent(String routingKey, Object payloadDto,String exchange) {
-        outboxRepository.save(createOutboxEntity(routingKey, payloadDto,exchange));
+    private void saveSingleEvent(String routingKey, Object payloadDto,String exchange,String correlationId) {
+        outboxRepository.save(createOutboxEntity(routingKey, payloadDto,exchange,correlationId));
         log.debug("Событие сохранено в Outbox. Exchange: '{}', Routing key: '{}'", exchange, routingKey);
     }
 
@@ -72,7 +72,7 @@ public class OutboxEventService {
         }
 
         List<OutboxEvent> outboxEvents = events.stream()
-                .map(event -> createOutboxEntity(notificationRoutingKey, orderEventMapper.toDto(event),notificationExchange))
+                .map(event -> createOutboxEntity(notificationRoutingKey, orderEventMapper.toDto(event),notificationExchange,null))
                 .toList();
 
         outboxRepository.saveAll(outboxEvents);
@@ -80,7 +80,7 @@ public class OutboxEventService {
     }
 
 
-    private OutboxEvent createOutboxEntity(String routingKey, Object payloadDto,String exchange) {
+    private OutboxEvent createOutboxEntity(String routingKey, Object payloadDto,String exchange,String correlationId) {
         try {
             return OutboxEvent.builder()
                     .eventId(UUID.randomUUID())
@@ -88,6 +88,7 @@ public class OutboxEventService {
                     .routingKey(routingKey)
                     .payload(objectMapper.writeValueAsString(payloadDto))
                     .status(OutboxStatus.PENDING)
+                    .correlationId(correlationId)
                     .createdAt(LocalDateTime.now())
                     .build();
         } catch (JsonProcessingException e) {

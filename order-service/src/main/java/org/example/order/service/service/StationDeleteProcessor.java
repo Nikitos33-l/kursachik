@@ -12,17 +12,17 @@ public class StationDeleteProcessor {
     private final OutboxEventService eventService;
     private final OrderManagementService orderManagementService;
 
-    public void deleteStationOrders(Long stationId) {
+    public void deleteStationOrders(Long stationId,String correlationId) {
         log.info("Запуск процесса удаления заказов для автостанции ID: {}", stationId);
 
         try {
-            orderManagementService.deleteByStation(stationId);
+            orderManagementService.deleteByStation(stationId,correlationId);
             log.info("Заказы автостанции ID: {} успешно удалены", stationId);
         } catch (Exception e) {
             log.error("Сбой при удалении заказов автостанции ID: {}. Формируем событие ошибки в Outbox", stationId, e);
 
             FailedStationOrdersDeletedEvent event = new FailedStationOrdersDeletedEvent(stationId, e.getMessage());
-            eventService.saveFailedStationOrdersDeleted(event);
+            eventService.saveFailedStationOrdersDeleted(event,correlationId);
         }
     }
 }

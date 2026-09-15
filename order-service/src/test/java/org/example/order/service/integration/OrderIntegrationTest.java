@@ -313,8 +313,12 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     void handleStationDelete_ShouldDeleteOrdersAndPublishSuccessEvent() {
         Order order = createAndSaveSampleOrder();
         Long targetStationId = order.getStationId();
+        String correlationId = UUID.randomUUID().toString();
 
-        rabbitTemplate.convertAndSend(stationDeleteQueue, targetStationId);
+        rabbitTemplate.convertAndSend(stationDeleteQueue, (Object) targetStationId, message -> {
+            message.getMessageProperties().setCorrelationId(correlationId);
+            return message;
+        });
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(5))
@@ -329,7 +333,9 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
                             argThat(message -> {
                                 try {
                                     String body = new String(message.getBody(), StandardCharsets.UTF_8);
-                                    return body.contains(String.valueOf(targetStationId));
+                                    String msgCorrelationId = message.getMessageProperties().getCorrelationId();
+                                    return body.contains(String.valueOf(targetStationId)) &&
+                                            correlationId.equals(msgCorrelationId);
                                 } catch (Exception e) {
                                     return false;
                                 }
@@ -343,25 +349,30 @@ public class OrderIntegrationTest extends BaseIntegrationTest {
     void handleStationDelete_ShouldPublishFailedEvent_WhenDeletionFails() {
         Long targetStationId = 999L;
         String errorMessage = "Artificial DB failure for testing";
+        String correlationId = UUID.randomUUID().toString();
 
         doThrow(new RuntimeException(errorMessage))
-                .when(orderManagementService).deleteByStation(targetStationId);
+                .when(orderManagementService).deleteByStation(eq(targetStationId), any());
 
-        rabbitTemplate.convertAndSend(stationDeleteQueue, targetStationId);
+        rabbitTemplate.convertAndSend(stationDeleteQueue, (Object) targetStationId, message -> {
+            message.getMessageProperties().setCorrelationId(correlationId);
+            return message;
+        });
 
         Awaitility.await()
                 .atMost(Duration.ofSeconds(5))
                 .pollInterval(Duration.ofMillis(200))
                 .untilAsserted(() -> {
-                    // Проверяем отправку события об ошибке в RabbitMQ
                     verify(rabbitTemplate, times(1)).send(
                             eq(orderExchange),
                             eq(failedStationOrdersDeletedKey),
                             argThat(message -> {
                                 try {
                                     String body = new String(message.getBody(), StandardCharsets.UTF_8);
+                                    String msgCorrelationId = message.getMessageProperties().getCorrelationId();
                                     return body.contains(String.valueOf(targetStationId)) &&
-                                            body.contains(errorMessage);
+                                            body.contains(errorMessage) &&
+                                            correlationId.equals(msgCorrelationId);
                                 } catch (Exception e) {
                                     return false;
                                 }
