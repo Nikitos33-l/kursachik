@@ -2,6 +2,7 @@ package org.example.user.service.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.List;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import java.util.UUID;
 @Entity
 @NoArgsConstructor
 @Table(name = "users")
+@SQLRestriction("status = 'ACTIVE'")
 public class User {
     @Id
     @Column(name="user_id")
@@ -27,6 +29,9 @@ public class User {
     @Column(name ="user_name")
     private String name;
 
+    @Column(name = "status")
+    private UserStatus status;
+
     @ManyToOne
     @JoinColumn(name="role_id")
     private Role role;
@@ -37,4 +42,9 @@ public class User {
 
     @Column(name = "station_id")
     private Long workplaceId;
+
+    public  enum UserStatus{
+        ACTIVE,
+        DELETING
+    }
 }

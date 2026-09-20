@@ -25,4 +25,6 @@ public interface UserRepository extends JpaRepository<User,UUID> {
 
     void deleteAllByWorkplaceId(Long workplaceId);
 
+    List<User> findAllByWorkplaceId(Long workplaceId);
+
 }

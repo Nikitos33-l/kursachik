@@ -281,7 +281,8 @@ public class UserService {
     )
     public void deleteByWorkplace(Long id,String correlationId) {
         log.warn("ВНИМАНИЕ: Запущено каскадное удаление всех пользователей для СТО ID: {}", id);
-        userRepository.deleteAllByWorkplaceId(id);
+        List <User> deleteUsers = userRepository.findAllByWorkplaceId(id);
+        deleteUsers.forEach(user -> user.setStatus(User.UserStatus.DELETING));
         userOutboxService.saveUserStationDeletedEvent(id,correlationId);
         log.info("Все пользователи для СТО ID: {} успешно удалены", id);
     }
