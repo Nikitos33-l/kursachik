@@ -18,6 +18,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 public class StationOutboxEventService {
+    //TODO написать методы для отправки сообщений об откате транзакций или окончании саги
     private final OutboxEventRepository eventRepository;
     private final ObjectMapper objectMapper;
 
@@ -30,6 +31,9 @@ public class StationOutboxEventService {
     @Value("${station.services.updated.routing.key}")
     private String servicesUpdatedRoutingKey;
 
+    @Value("${}")
+    private String stationDeleteSagaCompletedRoutingKey;
+
     @Transactional(propagation = Propagation.REQUIRED)
     public void saveStationServicesUpdatedEvent(Long stationId) {
         log.debug("Формирование Outbox события обновления услуг для СТО ID: {}", stationId);
@@ -37,9 +41,18 @@ public class StationOutboxEventService {
     }
 
     @Transactional(propagation = Propagation.REQUIRED)
+    public void saveStationDeleteSagaCompletedEvent(Long stationId,String correlationId){
+        saveEvent(stationId,stationDeleteSagaCompletedRoutingKey,correlationId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
     public void saveStationDeleteEvent(Long stationId,String sagaId) {
         log.debug("Формирование Outbox события удаления для СТО ID: {}", stationId);
         saveEvent(stationId, stationDeleteRoutingKey,sagaId);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void saveUserCompensateDeleteEvent(Long stationId, String correlationId) {
     }
 
     private void saveEvent(Long stationId, String routingKey,String correlationId) {
@@ -63,4 +76,6 @@ public class StationOutboxEventService {
             throw new RuntimeException("Не удалось сохранить событие во временную таблицу Outbox", e);
         }
     }
+
+
 }

@@ -30,7 +30,7 @@ public class StationService {
     private final StationMapper stationMapper;
     private final StationRepository stationRepository;
     private final StationOutboxEventService outboxEventService;
-    private final SagaEventService sagaEventService;
+    private final StationDeleteSagaOrchestrator stationDeleteSagaOrchestrator;
 
     @Transactional
     @CacheEvict(value = CacheNames.STATION_CACHE, key = "'all'")
@@ -82,7 +82,7 @@ public class StationService {
         log.warn("Инициация удаления СТО ID: {}", id);
         Station station = getStationById(id);
         station.setStatus(Station.StationStatus.DELETING);
-        String sagaId = sagaEventService.startStationDeleteSaga(id);
+        String sagaId = stationDeleteSagaOrchestrator.startStationDeleteSaga(id);
         outboxEventService.saveStationDeleteEvent(id,sagaId);
         log.info("СТО ID: {} инициализирована для удаления из БД, событие удаления успешно сохранено в Outbox", id);
 

@@ -6,6 +6,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.example.order.service.event.WorkerAssignmentEvent;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.util.*;
 
@@ -14,6 +15,7 @@ import java.util.*;
 @Setter
 @Getter
 @NoArgsConstructor
+@SQLRestriction("deleting_status = 'ACTIVE'")
 public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -36,6 +38,10 @@ public class Order {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "order_id", nullable = false)
     private List<OrderItem> orderItems = new ArrayList<>();
+
+    @Column(name = "deleting_status")
+    @Enumerated(value = EnumType.STRING)
+    private OrderDeleteStatus deleteStatus;
 
     @ElementCollection
     @CollectionTable(name = "orders_workers", joinColumns = @JoinColumn(name = "order_id"))
@@ -67,4 +73,10 @@ public class Order {
     public void clearWorkers() {
         this.workerIds.clear();
     }
+
+    public enum OrderDeleteStatus{
+        ACTIVE,
+        DELETING
+    }
+
 }
